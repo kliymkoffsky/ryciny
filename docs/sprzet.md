@@ -26,6 +26,18 @@ Do dokupienia:
 | Karta dźwiękowa USB z wejściem mikrofonowym (np. UGREEN) | daje mikrofonowi zasilanie (plug-in power) i wpuszcza dźwięk do HA | ok. 40 zł |
 | Przedłużacz USB (opcjonalnie) | jeśli komputer z HA stoi dalej niż 4,5 m od okna: karta przy oknie, dźwięk po USB cyfrowo, bez szumu | ok. 20–40 zł |
 
+Zamówione 13 października 2026: karta **UGREEN US205 (30724)** i przedłużacz USB 2.0.
+
+Czego się nauczyliśmy przy pierwszej próbie (test mikrofonu w panelu dodatku, 0.10.1):
+
+- **Przejściówka USB z jednym gniazdem combo (TRRS) nie działa z mikrofonem TRS.** Wtyk z 3 pierścieniami trafia na
+  styki słuchawek i masy, mikrofon nie dostaje zasilania i karta nagrywa idealną ciszę (-87 dB). Rozdzielacz
+  słuchawki + mikrofon (np. UGREEN AV141) pomaga, karta z osobnym gniazdem mikrofonu jest lepsza.
+- **Tania przejściówka combo nagrywała mikrofon tylko do ok. 7 kHz** (jak do rozmów), a wiele ptaków śpiewa wyżej.
+  Karta ma nagrywać mikrofon w 48 kHz.
+- **Przedłużacz jack 4,5 m zbierał przydźwięk sieci** (50 Hz i harmoniczne, w odsłuchu jak „pierdzenie”): 90% energii
+  nagrania, bez przedłużacza 45 dB mniej. Długość do okna nadrabiać przedłużaczem USB, nie kablem jack.
+
 ## Później: kolorowy ekran e-ink (jak w fugleramme)
 
 Ten sam panel co w Pimoroni Inky Impression (E Ink Spectra 6, 6 kolorów: czarny, biały, czerwony, zielony,
