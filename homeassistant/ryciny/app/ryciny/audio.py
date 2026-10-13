@@ -18,11 +18,15 @@ log = logging.getLogger(__name__)
 
 
 class Listener:
-    def __init__(self, command: str, analyzer, live) -> None:
+    """Records from the start, before the models are loaded, so the microphone can be tested straight away."""
+
+    def __init__(self, command: str, live, analyzer=None) -> None:
         self.command = command
-        self.analyzer = analyzer
+        self.analyzer = analyzer  # set once the models are loaded
         self.live = live
         self.windows: queue.Queue = queue.Queue(maxsize=1)
+        self.last: np.ndarray | None = None  # the newest 3 s, for "listen to the last 3 s" in the panel
+        self.peak = 0.0
 
     def start(self) -> None:
         threading.Thread(target=self._read, daemon=True, name="audio").start()
@@ -44,6 +48,10 @@ class Listener:
                 if len(raw) < size:
                     break
                 window = np.frombuffer(raw, dtype="<f4").copy()
+                self.last = window
+                self.peak = float(np.max(np.abs(window))) if len(window) else 0.0
+                self.live.level = float(np.sqrt(np.mean(np.square(window, dtype=np.float64))))
+                self.live.at = now_ms()
                 if self.windows.full():
                     try:
                         self.windows.get_nowait()  # analysis behind: drop the oldest window
@@ -60,6 +68,8 @@ class Listener:
     def _analyze(self) -> None:
         while True:
             window, at = self.windows.get()
+            if self.analyzer is None:
+                continue
             try:
                 self.analyzer.analyze(window, at)
             except Exception:  # noqa: BLE001

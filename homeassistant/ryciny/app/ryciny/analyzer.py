@@ -28,6 +28,11 @@ class Live:
     def json(self) -> dict:
         return {"listening": self.listening, "level": self.level, "sound": self.sound, "at": self.at, "error": self.error}
 
+    def level_db(self) -> float:
+        import math
+
+        return round(20 * math.log10(max(self.level, 1e-6)), 1)
+
 
 class Analyzer:
     def __init__(self, cfg, assets, store: Store, sky, rails, live: Live) -> None:

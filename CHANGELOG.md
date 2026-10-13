@@ -8,6 +8,12 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.10.1 - 2026-10-13
+
+- Dodatek HA: **Test mikrofonu** na zakładce Rycina: pasek poziomu (dB) i szczyt odświeżane co 3 s, przycisk
+  „Odsłuchaj ostatnie 3 s” (`/api/mic.wav`, bez wzmacniania) i podpowiedź, gdy jest cisza albo przester.
+- Nagrywanie rusza od razu po starcie, jeszcze zanim pobiorą się modele, więc mikrofon da się sprawdzić od razu.
+
 ## 0.10.0 - 2026-10-09
 
 - **Dodatek do Home Assistant** (`homeassistant/ryciny`, repozytorium dodatków pod adresem tego repo): nasłuch z mikrofonu przy komputerze z HA, BirdNET, YAMNet (psy, 34 dźwięki), samoloty, pociągi, generowanie rycin i Dziennik w tym samym formacie co aplikacja. Lokalizacja domu z Home Assistant.

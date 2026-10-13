@@ -35,6 +35,9 @@ input[type=range]{width:50%}
 input,select{font:inherit}
 .tag{background:var(--paper2);padding:10px;margin:6px 0 10px 76px}
 code{font-size:14px}
+.mic{text-align:center;margin:18px auto;max-width:520px}
+.meter{height:12px;border:1px solid var(--soft);margin:8px 0;background:#fff8}
+#meterBar{height:100%;width:0;background:var(--rubric);transition:width .4s}
 </style>
 </head>
 <body>
@@ -47,6 +50,13 @@ code{font-size:14px}
   <section id="plate">
     <div class="frame plate"><img id="plateImg" alt="Rycina"></div>
     <div class="live" id="live"></div>
+    <div class="mic">
+      <b>Test mikrofonu</b>
+      <div class="meter"><div id="meterBar"></div></div>
+      <span id="micDb" class="soft"></span>
+      <button class="act" id="micPlay" onclick="new Audio('api/mic.wav?t=' + Date.now()).play()">▶ Odsłuchaj ostatnie 3 s</button>
+      <p class="soft" id="micHint"></p>
+    </div>
   </section>
   <section id="journal" hidden>
     <div class="chips" id="filters"></div>
@@ -77,6 +87,11 @@ async function tick() {
     $('#live').textContent = (l.live.listening ? '● nasłuch trwa' : '○ nasłuch wyłączony') +
       (l.live.sound ? ' · słychać: ' + l.live.sound : '') + (l.live.error ? ' · ' + l.live.error : '') +
       (l.artError ? ' · ' + l.artError : '');
+    const db = l.mic ? l.mic.db : -120;
+    $('#meterBar').style.width = Math.max(0, Math.min(100, (db + 70) * 100 / 60)) + '%';
+    $('#micDb').textContent = l.mic && l.mic.has ? `poziom ${db} dB, szczyt ${Math.round((l.mic.peak || 0) * 100)}%` : 'czekam na pierwsze 3 s nagrania…';
+    $('#micHint').textContent = !l.mic || !l.mic.has ? '' : db < -60 ? 'Prawie cisza: sprawdź wejście w zakładce Audio dodatku i różowe gniazdo przejściówki.'
+      : (l.mic.peak || 0) > 0.98 ? 'Przester: mikrofon za blisko hałasu albo za duże wzmocnienie.' : 'Sygnał dochodzi. Zagwiżdż albo klaśnij i odsłuchaj.';
     if (l.version !== version) {
       version = l.version;
       $('#plateImg').src = 'api/plate.png?w=1600&h=900&v=' + version;
@@ -181,7 +196,7 @@ async function soundSwitch(key, on) {
   (await api('api/sounds')).forEach(s => sounds[s.key] = s);
   show(['plate', 'journal', 'settings'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'plate');
   tick();
-  setInterval(tick, 10000);
+  setInterval(tick, 3000);
 })();
 </script>
 </body>

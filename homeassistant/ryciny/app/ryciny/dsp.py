@@ -74,9 +74,10 @@ def cosine(a, b) -> float:
     return 0.0 if na == 0 or nb == 0 else float(np.dot(a, b) / (na * nb))
 
 
-def wav_bytes(x: np.ndarray, rate: int) -> bytes:
+def wav_bytes(x: np.ndarray, rate: int, normalize: bool = True) -> bytes:
+    """16-bit WAV; barks are made louder for listening, the microphone test is kept as recorded."""
     peak = max(float(np.max(np.abs(x))) if len(x) else 0.0, 1e-4)
-    gain = min(0.9 / peak, 8.0)
+    gain = min(0.9 / peak, 8.0) if normalize else 1.0
     pcm = (np.clip(x * gain, -1, 1) * 32767).astype("<i2")
     buf = io.BytesIO()
     with wave.open(buf, "wb") as w:

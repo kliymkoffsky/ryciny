@@ -6,6 +6,7 @@ import json
 import logging
 import signal
 import sys
+import threading
 
 from . import config
 from .analyzer import Analyzer, Live
@@ -31,15 +32,25 @@ def main() -> None:
 
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
+    # Microphone first: it can be tested in the panel while the models (~80 MB on first start) download.
+    live = Live()
+    listener = Listener(cfg.audio_command, live)
+    listener.start()
     sky = Sky(cfg, store, json.loads(assets.text("aircraft_types.json")))
     rails = Rails(cfg, store)
     art = Art(cfg, assets)
-    live = Live()
-    analyzer = Analyzer(cfg, assets, store, sky, rails, live)
+    app = App(cfg, assets, store, sky, rails, art, live, listener)
+    threading.Thread(target=app.serve, daemon=True, name="api").start()
     sky.start()
     rails.start()
-    Listener(cfg.audio_command, analyzer, live).start()
-    App(cfg, assets, store, sky, rails, art, live).serve()
+    live.sound = "ładuję modele rozpoznawania…"
+    try:
+        listener.analyzer = Analyzer(cfg, assets, store, sky, rails, live)
+        live.sound = ""
+    except Exception as e:  # noqa: BLE001 - keep the panel and the mic test running
+        logging.exception("models")
+        live.error = f"nie udało się wczytać modeli: {e}"
+    threading.Event().wait()
 
 
 if __name__ == "__main__":

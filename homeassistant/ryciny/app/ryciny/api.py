@@ -13,7 +13,7 @@ from PIL import Image
 
 from pathlib import Path
 
-from . import __version__, config, plate
+from . import __version__, config, dsp, plate
 
 WEB = Path(__file__).parent / "web"
 
@@ -23,8 +23,9 @@ log = logging.getLogger(__name__)
 
 
 class App:
-    def __init__(self, cfg, assets, store, sky, rails, art, live) -> None:
+    def __init__(self, cfg, assets, store, sky, rails, art, live, listener=None) -> None:
         self.cfg, self.assets, self.store, self.sky, self.rails, self.art, self.live = cfg, assets, store, sky, rails, art, live
+        self.listener = listener
         self.sounds = {s["key"]: s for s in json.loads(assets.text("sounds.json"))["sounds"]}
         self.fonts = (str(assets.path("garamond.ttf")), str(assets.path("garamond_italic.ttf")))
 
@@ -92,8 +93,15 @@ class App:
                             return self._send(304, b"", "application/json", {"ETag": etag})
                         return self._json(app.store.snapshot(), headers={"ETag": etag})
                     if path == "/api/live":
+                        mic = {"db": app.live.level_db(), "peak": round(app.listener.peak, 3) if app.listener else 0,
+                               "has": bool(app.listener and app.listener.last is not None)}
                         return self._json({"version": app.store.version, "live": app.live.json(), "sky": app.sky.state(),
-                                           "rails": app.rails.state(), "artError": app.art.error})
+                                           "rails": app.rails.state(), "artError": app.art.error, "mic": mic})
+                    if path == "/api/mic.wav":
+                        last = app.listener.last if app.listener else None
+                        if last is None:
+                            return self._json({"error": "jeszcze nic nie nagrano"}, 404)
+                        return self._send(200, dsp.wav_bytes(last, 48_000, normalize=False), "audio/wav", {"Cache-Control": "no-store"})
                     if path == "/api/art":
                         kind, key = q.get("kind", ""), q.get("key", "")
                         if kind not in ("BIRD", "PLANE", "DOG", "SCENE") or not key:

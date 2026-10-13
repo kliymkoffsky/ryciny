@@ -64,6 +64,11 @@ dodatku.
 Otwórz **Ryciny** z bocznego menu HA. Pod ryciną powinno być „● nasłuch trwa · słychać: …”.
 Jeśli jest „nagrywanie przerwane”, sprawdź wejście w zakładce **Audio** dodatku.
 
+Pod spodem jest **Test mikrofonu**: pasek poziomu i przycisk **▶ Odsłuchaj ostatnie 3 s**. Zagwiżdż albo klaśnij
+przy mikrofonie, pasek powinien skoczyć, a w odsłuchu słychać gwizd. Poziom poniżej -60 dB to prawie cisza: złe
+wejście w zakładce **Audio** albo mikrofon w złym gnieździe karty. Test działa od razu po starcie, zanim pobiorą się
+modele.
+
 Panel ma trzy zakładki:
 - **Rycina**: najnowsza rzecz usłyszana albo widziana, na papierze;
 - **Dziennik**: wszystko z miniaturami; przy szczekaniu ▶ (odsłuch) i **Kto to?** (oznaczenie psa: imię i rasa,
