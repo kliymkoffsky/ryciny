@@ -8,6 +8,12 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.11.0 - 2026-10-15
+
+- Aplikacja: dotknięcie pozycji w Dzienniku otwiera ją na pełnym ekranie z dużą ryciną; przesunięcie palcem (albo
+  ‹ nowsze / starsze ›) przechodzi do sąsiednich. Przy szczekaniu są tam też odsłuch i „Kto to?”. Zastępuje
+  okienko, które było tylko przy samolotach.
+
 ## 0.10.2 - 2026-10-15
 
 - Dodatek HA: ryciny samolotów, psów i dźwięków zamawiane w tle zaraz po zdarzeniu (każda tylko raz). Wcześniej
