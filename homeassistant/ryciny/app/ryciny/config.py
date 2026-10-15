@@ -33,6 +33,8 @@ class Config:
     sounds_off: list[str] = field(default_factory=lambda: ["sheep", "goat"])
     sounds_on: list[str] = field(default_factory=list)
     lookback_hours: int = 12
+    public_url: str = ""  # the Worker in public-site/, e.g. https://dzwieki-migowa.<konto>.workers.dev
+    public_token: str = ""
     mic_gain_db: float = 0.0  # a quiet microphone: YAMNet misses planes below about -40 dBFS
 
 

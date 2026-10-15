@@ -14,6 +14,7 @@ from .api import App
 from .art import Art
 from .assets import Assets
 from .audio import Listener
+from .publish import Publisher
 from .rails import Rails
 from .sky import Sky
 from .store import Store
@@ -42,6 +43,7 @@ def main() -> None:
     app = App(cfg, assets, store, sky, rails, art, live, listener)
     threading.Thread(target=app.serve, daemon=True, name="api").start()
     threading.Thread(target=app.prefetch, daemon=True, name="art").start()
+    threading.Thread(target=Publisher(cfg, app).run, daemon=True, name="publish").start()
     sky.start()
     rails.start()
     live.sound = "ładuję modele rozpoznawania…"

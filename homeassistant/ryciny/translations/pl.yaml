@@ -14,6 +14,12 @@ configuration:
     name: Klucz Google Gemini
   openrouter_key:
     name: Klucz OpenRouter
+  public_url:
+    name: Strona publiczna (adres Workera)
+    description: Opcjonalnie. Co 3 minuty wysyła ptaki, usłyszane samoloty i dźwięki okolicy (bez audio, psów, mowy i lokalizacji) do Workera z public-site/.
+  public_token:
+    name: Token strony publicznej
+    description: Ten sam co sekret INGEST_TOKEN Workera.
   mic_gain_db:
     name: Wzmocnienie mikrofonu (dB)
     description: Cichy mikrofon za oknem — samoloty rozpoznawane są dopiero od ok. -40 dB; zwykle 12–24 dB. Można też ustawiać w panelu.

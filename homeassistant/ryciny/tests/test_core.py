@@ -58,3 +58,22 @@ def test_pitch_and_size():
     low = (0.5 * __import__("numpy").sin(2 * 3.14159 * 300 * t)).astype("float32")
     assert 280 < dsp.bark_pitch(low) < 320
     assert dsp.size_of(300) == "duży" and dsp.size_of(500) == "średni" and dsp.size_of(900) == "mały"
+
+
+def test_public_state_leaves_out_private_things():
+    from ryciny.publish import public_state
+    from ryciny.store import now_ms
+    t = now_ms()
+    j = {"birds": [{"name": "sroka", "sci": "Pica pica", "conf": 0.91, "count": 2, "lastAt": t}],
+         "planes": [{"title": "Boeing 737-800", "airline": "LOT", "callsign": "LOT1", "route": "WAW → GDN", "at": t, "lastAt": t,
+                     "heard": True, "minDistKm": 0.7, "minAltM": 300, "typeCode": "B738", "airlineIcao": "LOT"},
+                    {"title": "A320", "airline": "", "callsign": "", "route": "", "at": t, "lastAt": t, "heard": False}],
+         "sounds": [{"key": "talking", "at": t, "lastAt": t, "count": 3, "title": "", "subtitle": "", "variant": ""},
+                    {"key": "cricket", "at": t, "lastAt": t, "count": 1, "title": "", "subtitle": "", "variant": ""}],
+         "barks": [{"id": "x"}], "dogs": [{"id": "d"}]}
+    sounds = {"talking": {"past": "Rozmowa"}, "cricket": {"past": "Grały świerszcze"}}
+    s = public_state(j, sounds, lambda k: True)
+    assert [p["art"] for p in s["planes"]] == ["B738-LOT"]
+    assert [e["key"] for e in s["sounds"]] == ["cricket"]
+    text = str(s)
+    assert "minDistKm" not in text and "barks" not in s and "dogs" not in s and "lat" not in s

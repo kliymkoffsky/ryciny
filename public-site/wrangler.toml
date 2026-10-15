@@ -1,0 +1,10 @@
+name = "dzwieki-migowa"
+main = "worker.js"
+compatibility_date = "2026-07-01"
+workers_dev = true
+# account_id comes from CLOUDFLARE_ACCOUNT_ID at deploy time, so it is not kept in this public repo.
+
+# The add-on's snapshot and engravings. Secret: INGEST_TOKEN (wrangler secret put INGEST_TOKEN).
+[[kv_namespaces]]
+binding = "DATA"
+id = "REPLACE_WITH_KV_ID"

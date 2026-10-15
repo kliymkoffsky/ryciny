@@ -56,3 +56,5 @@ schema:
     - str
   audio_command: str?
   mic_gain_db: float(0,36)?
+  public_url: url?
+  public_token: password?
