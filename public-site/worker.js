@@ -140,6 +140,12 @@ a{color:var(--rubric)}
   <div id="entries"></div>
   <nav class="filters pager" id="pager"></nav>
 
+  <h2>Jak to jest nagrywane</h2>
+  <p>Mikrofon <b>Primo EM272</b> (kapsuła elektretowa wielokierunkowa, mikrofon krawatowy Micverve) wisi za oknem.
+  Przez kartę dźwiękową USB <b>UGREEN US205</b> (48 kHz) trafia do małego komputera <b>Intel NUC</b> z Home Assistant,
+  który słucha całą dobę. Co 3 sekundy nagranie przechodzi przez <b>BirdNET</b> (ptaki) i <b>YAMNet</b> (pozostałe
+  dźwięki). Samoloty są porównywane z danymi ADS-B, a pociągi z rozkładem PKP PLK. Nagrania nie są zapisywane ani
+  wysyłane, tu trafia tylko to, co zostało rozpoznane.</p>
   <footer>
     Rozpoznawanie: <a href="https://birdnet.cornell.edu/">BirdNET</a> i YAMNet, na komputerze w domu; pewność to ocena modelu,
     nie obserwacja ornitologa. Ryciny ptaków: <a href="https://fugleramme.no/">fugleramme</a> (CC BY-SA 4.0) i tablice z domeny
