@@ -96,6 +96,17 @@ trafiają na serwer. Powrót do **Ten telefon** przywraca telefonowi jego własn
 Telefon i Home Assistant muszą być w tej samej sieci domowej (port 8099 nie wymaga logowania i nie powinien być
 wystawiony do internetu).
 
+### 7. Strona publiczna (opcjonalnie)
+
+Przykład: [Dźwięki Dolnego Migowa](https://dzwieki-migowa.qunabu.workers.dev). Dodatek co ok. 3 minuty wysyła do
+Workera Cloudflare ptaki, usłyszane samoloty i dźwięki okolicy z rycinami. Nie wysyła audio, psów, rozmów, dzieci,
+muzyki, dzwonka, współrzędnych ani odległości. Z internetu nic nie wchodzi do domowej sieci.
+
+1. Darmowe konto Cloudflare i token z szablonu **Edit Cloudflare Workers**.
+2. W katalogu `public-site/`: `npx wrangler kv namespace create dzwieki-migowa`, wpisz `id` do `wrangler.toml`,
+   potem `npx wrangler deploy` i `npx wrangler secret put INGEST_TOKEN` (dowolny długi losowy ciąg).
+3. W konfiguracji dodatku: `public_url` = adres Workera, `public_token` = ten sam ciąg.
+
 ---
 
 ## Samsung The Frame
