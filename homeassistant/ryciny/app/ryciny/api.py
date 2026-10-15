@@ -6,6 +6,7 @@ import hashlib
 import json
 import logging
 import re
+import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -14,6 +15,7 @@ from PIL import Image
 from pathlib import Path
 
 from . import __version__, config, dsp, plate
+from .store import now_ms
 
 WEB = Path(__file__).parent / "web"
 
@@ -36,6 +38,44 @@ class App:
         if key in self.cfg.sounds_on:
             return True
         return s.get("enabled", True)
+
+    def wanted(self, since: int) -> list[tuple]:
+        """Engravings the journal needs for entries seen since [since]: heard planes, sounds that are on, barks."""
+        j = self.store.snapshot()
+        dogs = {d["id"]: d for d in j["dogs"]}
+        breeds = json.loads(self.assets.text("dog_breeds.json"))
+        out = []
+        for p in j["planes"]:
+            if p["heard"] and p["lastAt"] >= since:
+                key = f"{p.get('typeCode') or p['title']}-{p.get('airlineIcao') or p['airline'] or 'plain'}"
+                out.append(("PLANE", key, p["title"], p["airline"], ""))
+        for e in j["sounds"]:
+            s = self.sounds.get(e["key"])
+            if s and e["lastAt"] >= since and self.sound_on(e["key"]):
+                out.append(("SCENE", f"{e['key']}-{e['variant']}" if e["variant"] else e["key"], s["now"], "", s["prompt"]))
+        for b in j["barks"]:
+            if b["lastAt"] >= since:
+                d = dogs.get(b.get("dogId"))
+                if d:
+                    out.append(("DOG", d["breed"], d["breedEn"], "", ""))
+                else:
+                    m = breeds[{"mały": 0, "duży": 2}.get(b.get("size"), 1)]
+                    out.append(("DOG", m["pl"], m["en"], "", ""))
+        return list(dict.fromkeys(out))
+
+    def prefetch(self) -> None:
+        """Orders each missing engraving once, right after the event, so the Journal shows it without anyone watching."""
+        since, version = now_ms() - self.cfg.lookback_hours * 3600_000, -1
+        while True:
+            time.sleep(5)
+            if self.store.version == version or not self.provider_ready():
+                continue
+            version, started = self.store.version, now_ms()
+            for kind, key, subject, airline, prompt in self.wanted(since):
+                if self.art.cached(kind, key) is None:
+                    log.info("art: ordering %s %s", kind, key)
+                    self.art.load(kind, key, subject, airline, prompt, wait=True)
+            since = started - 60_000
 
     def provider_ready(self) -> bool:
         c = self.cfg

@@ -8,6 +8,12 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.10.2 - 2026-10-15
+
+- Dodatek HA: ryciny samolotów, psów i dźwięków zamawiane w tle zaraz po zdarzeniu (każda tylko raz). Wcześniej
+  powstawała tylko rycina najnowszej rzeczy i tylko wtedy, gdy ktoś akurat oglądał panel, więc Dziennik miał
+  ryciny wyłącznie przy ptakach.
+
 ## 0.10.1 - 2026-10-13
 
 - Dodatek HA: **Test mikrofonu** na zakładce Rycina: pasek poziomu (dB) i szczyt odświeżane co 3 s, przycisk
