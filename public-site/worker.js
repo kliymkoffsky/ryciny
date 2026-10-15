@@ -104,6 +104,7 @@ h2{font-weight:400;font-size:24px;border-bottom:1px solid var(--rule);margin:34p
 .filters button.on{background:var(--ink);color:var(--paper)}
 .filters button:disabled{opacity:.35;cursor:default}
 .pager{margin-top:14px;justify-content:center;align-items:center}
+.filters.top{position:sticky;top:0;z-index:2;background:var(--paper);justify-content:center;padding:8px 0;margin:0 0 12px;border-bottom:1px solid var(--rule)}
 .row{display:flex;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule)}
 .thumb{width:58px;height:58px;object-fit:contain;flex:none;mix-blend-mode:multiply}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .thumb{mix-blend-mode:normal}}
@@ -118,18 +119,20 @@ a{color:var(--rubric)}
 <main>
   <h1>Dźwięki Dolnego Migowa</h1>
   <p class="sub">Gdańsk · mikrofon za oknem słucha ptaków, samolotów i okolicy · <span id="upd">…</span></p>
+  <nav class="filters top" id="filters"></nav>
   <section class="plate" id="plate"><p class="soft">Wczytuję…</p></section>
 
   <h2>Statystyki</h2>
   <div class="stats" id="stats"></div>
+  <div id="birdstats">
   <h3 style="font-weight:400">Najczęściej słyszane ptaki (7 dni)</h3>
   <ul class="top" id="top"></ul>
   <h3 style="font-weight:400">Ptaki według godziny (7 dni)</h3>
   <div class="hours" id="hours"></div>
   <div class="hlab"><span>0:00</span><span>6:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div>
+  </div>
 
   <h2 id="dziennik">Dziennik</h2>
-  <div class="filters" id="filters"></div>
   <div id="entries"></div>
   <nav class="filters pager" id="pager"></nav>
 
@@ -148,7 +151,10 @@ const hhmm = t => new Date(t).toLocaleTimeString(PL, {hour: '2-digit', minute: '
 const day = t => { const d = new Date(t), n = new Date(); const y = new Date(n); y.setDate(n.getDate() - 1);
   return d.toDateString() === n.toDateString() ? 'dziś' : d.toDateString() === y.toDateString() ? 'wczoraj' : d.toLocaleDateString(PL, {day: 'numeric', month: 'short'}); };
 const art = (kind, key, cls = 'thumb') => '<img class="' + cls + '" loading="lazy" alt="" src="art?kind=' + kind + '&key=' + encodeURIComponent(key) + '" onerror="this.outerHTML=\\'<div class=&quot;' + cls + ' empty&quot;></div>\\'">';
-let state = null, filter = 'all', page = 0;
+const FILTERS = [['all', 'wszystko', ''], ['birds', 'ptaki', 'ptaki'], ['planes', 'samoloty', 'samoloty'], ['sounds', 'dźwięki', 'dzwieki']];
+const fromHash = () => (FILTERS.find(f => f[2] && '#' + f[2] === location.hash) || FILTERS[0])[0];
+let state = null, filter = fromHash(), page = 0;
+addEventListener('hashchange', () => { filter = fromHash(); page = 0; render(); });
 const PAGE = 25;
 
 async function load() {
@@ -161,10 +167,11 @@ async function load() {
 
 function newest() {
   const s = state, items = [];
-  s.birds.forEach(b => items.push({at: b.lastAt, kind: 'BIRD', key: b.sci, title: b.name, lines: [b.sci, 'ostatnio ' + hhmm(b.lastAt)]}));
-  s.planes.forEach(p => items.push({at: p.at, kind: 'PLANE', key: p.art, title: p.title,
+  const on = k => filter === 'all' || filter === k;
+  if (on('birds')) s.birds.forEach(b => items.push({at: b.lastAt, kind: 'BIRD', key: b.sci, title: b.name, lines: [b.sci, 'ostatnio ' + hhmm(b.lastAt)]}));
+  if (on('planes')) s.planes.forEach(p => items.push({at: p.at, kind: 'PLANE', key: p.art, title: p.title,
     lines: [[p.airline, p.callsign].filter(Boolean).join(' · '), p.route, 'słychać było o ' + hhmm(p.at)]}));
-  s.sounds.forEach(e => items.push({at: e.at, kind: 'SCENE', key: e.art, title: e.label,
+  if (on('sounds')) s.sounds.forEach(e => items.push({at: e.at, kind: 'SCENE', key: e.art, title: e.label,
     lines: [e.title, e.subtitle, hhmm(e.at) + '–' + hhmm(e.lastAt)]}));
   return items.sort((a, b) => b.at - a.at)[0];
 }
@@ -181,8 +188,15 @@ function render() {
   const b7 = s.birds.filter(b => b.lastAt >= week), bToday = s.birds.filter(b => b.lastAt >= today);
   const species = l => new Set(l.map(b => b.sci)).size;
   const stat = (v, l) => '<div class="stat"><b>' + v + '</b>' + l + '</div>';
-  $('#stats').innerHTML = stat(species(bToday), 'gatunków ptaków dziś') + stat(species(b7), 'gatunków w 7 dni') +
-    stat(species(s.birds), 'gatunków w 30 dni') + stat(s.planes.filter(p => p.at >= today).length, 'usłyszanych samolotów dziś');
+  const pToday = s.planes.filter(p => p.at >= today), sToday = s.sounds.filter(e => e.lastAt >= today);
+  const birdStats = stat(species(bToday), 'gatunków ptaków dziś') + stat(species(b7), 'gatunków w 7 dni') + stat(species(s.birds), 'gatunków w 30 dni');
+  const planeStats = stat(pToday.length, 'usłyszanych samolotów dziś') + stat(s.planes.filter(p => p.at >= week).length, 'samolotów w 7 dni') +
+    stat(new Set(pToday.map(p => p.airline).filter(Boolean)).size, 'linii lotniczych dziś');
+  const soundStats = stat(new Set(sToday.map(e => e.key)).size, 'rodzajów dźwięków dziś') + stat(sToday.filter(e => e.key === 'train').length, 'pociągów dziś') +
+    stat(s.sounds.filter(e => e.lastAt >= week).length, 'dźwięków w 7 dni');
+  $('#stats').innerHTML = filter === 'birds' ? birdStats : filter === 'planes' ? planeStats : filter === 'sounds' ? soundStats
+    : birdStats + stat(pToday.length, 'usłyszanych samolotów dziś');
+  $('#birdstats').style.display = filter === 'all' || filter === 'birds' ? '' : 'none';
 
   const bySp = {};
   b7.forEach(b => { const k = b.sci; (bySp[k] ||= {name: b.name, sci: k, n: 0}).n += b.count; });
@@ -196,16 +210,19 @@ function render() {
   const hm = Math.max(1, ...hours);
   $('#hours').innerHTML = hours.map((v, h) => '<div title="' + h + ':00 · ' + v + '×" style="height:' + (100 * v / hm) + '%"></div>').join('');
 
-  const f = [['all', 'wszystko'], ['birds', 'ptaki'], ['planes', 'samoloty'], ['sounds', 'dźwięki']];
-  $('#filters').innerHTML = f.map(([k, l]) => '<button class="' + (k === filter ? 'on' : '') + '" data-f="' + k + '">' + l + '</button>').join('');
-  $('#filters').querySelectorAll('button').forEach(b => b.onclick = () => { filter = b.dataset.f; page = 0; render(); });
+  $('#filters').innerHTML = FILTERS.map(([k, l]) => '<button class="' + (k === filter ? 'on' : '') + '" data-f="' + k + '">' + l + '</button>').join('');
+  $('#filters').querySelectorAll('button').forEach(b => b.onclick = () => {
+    filter = b.dataset.f; page = 0;
+    history.replaceState(null, '', location.pathname + (FILTERS.find(f => f[0] === filter)[2] ? '#' + FILTERS.find(f => f[0] === filter)[2] : ''));
+    render();
+  });
   const rows = [];
   if (filter === 'all' || filter === 'birds') s.birds.forEach(b => rows.push({at: b.lastAt, html: '<div class="row">' + art('BIRD', b.sci) +
     '<div>' + esc(b.name.charAt(0).toUpperCase() + b.name.slice(1)) + '<div class="d">' + day(b.lastAt) + ' ' + hhmm(b.lastAt) + ' · ' + esc(b.sci) +
     ' · ' + Math.round(b.conf * 100) + '%' + (b.count > 1 ? ' · ' + b.count + '×' : '') + '</div></div></div>'}));
   if (filter === 'all' || filter === 'planes') s.planes.forEach(p => rows.push({at: p.lastAt, html: '<div class="row">' + art('PLANE', p.art) +
-    '<div>' + esc(p.title) + (p.callsign ? ' · ' + esc(p.callsign) : '') + '<div class="d">' + day(p.at) + ' ' + hhmm(p.at) + ' · ' +
-    esc([p.airline, p.route].filter(Boolean).join(' · ')) + (p.altM ? ' · ' + p.altM + ' m' : '') + '</div></div></div>'}));
+    '<div>' + esc(p.title) + (p.callsign ? ' · ' + esc(p.callsign) : '') + '<div class="d">' +
+    esc([day(p.at) + ' ' + hhmm(p.at), p.airline, p.route, p.altM ? p.altM + ' m' : ''].filter(Boolean).join(' · ')) + '</div></div></div>'}));
   if (filter === 'all' || filter === 'sounds') s.sounds.forEach(e => rows.push({at: e.lastAt, html: '<div class="row">' + art('SCENE', e.art) +
     '<div>' + esc(e.label) + (e.title ? ': ' + esc(e.title) : '') + '<div class="d">' + day(e.at) + ' ' + hhmm(e.at) + '–' + hhmm(e.lastAt) +
     (e.subtitle ? ' · ' + esc(e.subtitle) : '') + '</div></div></div>'}));
