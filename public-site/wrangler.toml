@@ -7,4 +7,4 @@ workers_dev = true
 # The add-on's snapshot and engravings. Secret: INGEST_TOKEN (wrangler secret put INGEST_TOKEN).
 [[kv_namespaces]]
 binding = "DATA"
-id = "REPLACE_WITH_KV_ID"
+id = "bd9f6788d8824b16b17dd27a31f2c231"

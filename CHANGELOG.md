@@ -8,6 +8,15 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.13.0 - 2026-10-15
+
+- **Strona publiczna** „Dźwięki Dolnego Migowa”: https://dzwieki-migowa.qunabu.workers.dev. Worker Cloudflare z KV
+  (`public-site/`), tylko do odczytu: rycina na żywo, statystyki gatunków (dziś, 7 i 30 dni, ranking, rozkład
+  godzinowy) i Dziennik ptaków, usłyszanych samolotów i dźwięków okolicy.
+- Dodatek HA: opcje `public_url` i `public_token`. Co ok. 3 minuty (gdy coś się zmieniło) wysyła okrojony Dziennik,
+  każdą rycinę raz. Nie wysyła audio, psów, rozmów, dzieci, muzyki, dzwonka, współrzędnych ani odległości samolotów.
+  Z internetu nic nie wchodzi do domowej sieci.
+
 ## 0.12.0 - 2026-10-15
 
 - Dodatek HA: **wzmocnienie mikrofonu** (`mic_gain_db`, 0–36 dB) w Ustawieniach panelu i w konfiguracji dodatku.
