@@ -103,6 +103,10 @@ h2{font-weight:400;font-size:24px;border-bottom:1px solid var(--rule);margin:34p
 .filters button{font:inherit;font-size:16px;background:none;border:1px solid var(--rule);color:var(--ink);padding:2px 12px;border-radius:14px;cursor:pointer}
 .filters button.on{background:var(--ink);color:var(--paper)}
 .filters button:disabled{opacity:.35;cursor:default}
+.plate .nav{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:-6px 0 8px;font-size:15px}
+.arrow{font:inherit;font-size:16px;background:none;border:1px solid var(--rule);color:var(--ink);padding:2px 12px;border-radius:14px;cursor:pointer}
+.arrow:disabled{opacity:.3;cursor:default}
+.top a,.row a{color:inherit;text-decoration-color:var(--rule)}
 .pager{margin-top:14px;justify-content:center;align-items:center}
 .filters.top{position:sticky;top:0;z-index:2;background:var(--paper);justify-content:center;padding:8px 0;margin:0 0 12px;border-bottom:1px solid var(--rule)}
 .row{display:flex;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule)}
@@ -154,7 +158,7 @@ const art = (kind, key, cls = 'thumb') => '<img class="' + cls + '" loading="laz
 const FILTERS = [['all', 'wszystko', ''], ['birds', 'ptaki', 'ptaki'], ['planes', 'samoloty', 'samoloty'], ['sounds', 'dźwięki', 'dzwieki']];
 const fromHash = () => (FILTERS.find(f => f[2] && '#' + f[2] === location.hash) || FILTERS[0])[0];
 let state = null, filter = fromHash(), page = 0;
-addEventListener('hashchange', () => { filter = fromHash(); page = 0; render(); });
+addEventListener('hashchange', () => { filter = fromHash(); page = 0; shown = null; render(); });
 const PAGE = 25;
 
 async function load() {
@@ -165,24 +169,52 @@ async function load() {
   } catch (e) { $('#upd').textContent = 'brak połączenia'; }
 }
 
-function newest() {
+const wiki = sci => 'https://pl.wikipedia.org/wiki/Special:Search?go=Go&search=' + encodeURIComponent(sci);
+const wikiLink = (sci, label) => '<a href="' + wiki(sci) + '" target="_blank" rel="noopener">' + label + '</a>';
+let shown = null; // the plate being looked at with the arrows; null = always the newest
+
+function plates() {
   const s = state, items = [];
   const on = k => filter === 'all' || filter === k;
-  if (on('birds')) s.birds.forEach(b => items.push({at: b.lastAt, kind: 'BIRD', key: b.sci, title: b.name, lines: [b.sci, 'ostatnio ' + hhmm(b.lastAt)]}));
+  if (on('birds')) s.birds.forEach(b => items.push({at: b.lastAt, kind: 'BIRD', key: b.sci, title: b.name, sci: b.sci,
+    lines: [b.sci, day(b.lastAt) + ' ' + hhmm(b.lastAt) + ' · pewność ' + Math.round(b.conf * 100) + '%' + (b.count > 1 ? ' · ' + b.count + '×' : '')]}));
   if (on('planes')) s.planes.forEach(p => items.push({at: p.at, kind: 'PLANE', key: p.art, title: p.title,
-    lines: [[p.airline, p.callsign].filter(Boolean).join(' · '), p.route, 'słychać było o ' + hhmm(p.at)]}));
+    lines: [[p.airline, p.callsign].filter(Boolean).join(' · '), p.route, 'słychać było ' + day(p.at) + ' o ' + hhmm(p.at)]}));
   if (on('sounds')) s.sounds.forEach(e => items.push({at: e.at, kind: 'SCENE', key: e.art, title: e.label,
-    lines: [e.title, e.subtitle, hhmm(e.at) + '–' + hhmm(e.lastAt)]}));
-  return items.sort((a, b) => b.at - a.at)[0];
+    lines: [e.title, e.subtitle, day(e.at) + ' ' + hhmm(e.at) + '–' + hhmm(e.lastAt)]}));
+  items.forEach(i => i.id = i.kind + ':' + i.key + ':' + i.at);
+  return items.sort((a, b) => b.at - a.at);
 }
+
+function renderPlate() {
+  const list = plates();
+  let i = shown ? list.findIndex(x => x.id === shown) : 0;
+  if (i < 0) { i = 0; shown = null; }
+  const n = list[i];
+  if (!n) { $('#plate').innerHTML = '<p class="soft">Cisza.</p>'; return; }
+  const go = j => '<button class="arrow" data-i="' + j + '"' + (j < 0 || j >= list.length ? ' disabled' : '') + '>';
+  $('#plate').innerHTML =
+    '<div class="nav">' + go(i + 1) + '‹ wcześniej</button><span class="soft">' + (i === 0 ? 'najnowsze' : (i + 1) + ' z ' + list.length +
+      ' · <a href="#" data-now>wróć do najnowszego</a>') + '</span>' + go(i - 1) + 'później ›</button></div>' +
+    art(n.kind, n.key, 'big') + '<div class="t">' + esc(n.title.charAt(0).toUpperCase() + n.title.slice(1)) + '</div>' +
+    n.lines.filter(Boolean).map(l => '<div class="l">' + esc(l) + '</div>').join('') +
+    (n.sci ? '<div class="l">' + wikiLink(n.sci, 'w Wikipedii ↗') + '</div>' : '');
+  $('#plate').querySelectorAll('button[data-i]').forEach(b => b.onclick = () => { const j = +b.dataset.i; shown = j === 0 ? null : list[j].id; renderPlate(); });
+  const now = $('#plate').querySelector('[data-now]');
+  if (now) now.onclick = e => { e.preventDefault(); shown = null; renderPlate(); };
+}
+
+addEventListener('keydown', e => {
+  if (!state || e.target.closest('input,textarea') || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+  const b = $('#plate').querySelectorAll('button.arrow')[e.key === 'ArrowLeft' ? 0 : 1];
+  if (b && !b.disabled) b.click();
+});
 
 function render() {
   const s = state;
   if (!s || !s.birds) { $('#plate').innerHTML = '<p class="soft">Jeszcze nic tu nie ma.</p>'; return; }
   $('#upd').textContent = 'aktualizacja ' + day(s.updatedAt) + ' ' + hhmm(s.updatedAt);
-  const n = newest();
-  $('#plate').innerHTML = n ? art(n.kind, n.key, 'big') + '<div class="t">' + esc(n.title.charAt(0).toUpperCase() + n.title.slice(1)) + '</div>' +
-    n.lines.filter(Boolean).map(l => '<div class="l">' + esc(l) + '</div>').join('') : '<p class="soft">Cisza.</p>';
+  renderPlate();
 
   const week = Date.now() - 7 * 864e5, today = new Date(); today.setHours(0, 0, 0, 0);
   const b7 = s.birds.filter(b => b.lastAt >= week), bToday = s.birds.filter(b => b.lastAt >= today);
@@ -201,7 +233,7 @@ function render() {
   const bySp = {};
   b7.forEach(b => { const k = b.sci; (bySp[k] ||= {name: b.name, sci: k, n: 0}).n += b.count; });
   const top = Object.values(bySp).sort((a, b) => b.n - a.n).slice(0, 12), max = top[0]?.n || 1;
-  $('#top').innerHTML = top.map(t => '<li>' + art('BIRD', t.sci) + '<span style="flex:1">' + esc(t.name) +
+  $('#top').innerHTML = top.map(t => '<li>' + art('BIRD', t.sci) + '<span style="flex:1">' + wikiLink(t.sci, esc(t.name)) +
     '<div class="bar" style="width:' + Math.max(4, 100 * t.n / max) + '%"></div></span><span class="soft">' + t.n + '×</span></li>').join('') ||
     '<li class="soft">Jeszcze brak.</li>';
 
@@ -212,13 +244,13 @@ function render() {
 
   $('#filters').innerHTML = FILTERS.map(([k, l]) => '<button class="' + (k === filter ? 'on' : '') + '" data-f="' + k + '">' + l + '</button>').join('');
   $('#filters').querySelectorAll('button').forEach(b => b.onclick = () => {
-    filter = b.dataset.f; page = 0;
+    filter = b.dataset.f; page = 0; shown = null;
     history.replaceState(null, '', location.pathname + (FILTERS.find(f => f[0] === filter)[2] ? '#' + FILTERS.find(f => f[0] === filter)[2] : ''));
     render();
   });
   const rows = [];
   if (filter === 'all' || filter === 'birds') s.birds.forEach(b => rows.push({at: b.lastAt, html: '<div class="row">' + art('BIRD', b.sci) +
-    '<div>' + esc(b.name.charAt(0).toUpperCase() + b.name.slice(1)) + '<div class="d">' + day(b.lastAt) + ' ' + hhmm(b.lastAt) + ' · ' + esc(b.sci) +
+    '<div>' + wikiLink(b.sci, esc(b.name.charAt(0).toUpperCase() + b.name.slice(1))) + '<div class="d">' + day(b.lastAt) + ' ' + hhmm(b.lastAt) + ' · ' + esc(b.sci) +
     ' · ' + Math.round(b.conf * 100) + '%' + (b.count > 1 ? ' · ' + b.count + '×' : '') + '</div></div></div>'}));
   if (filter === 'all' || filter === 'planes') s.planes.forEach(p => rows.push({at: p.lastAt, html: '<div class="row">' + art('PLANE', p.art) +
     '<div>' + esc(p.title) + (p.callsign ? ' · ' + esc(p.callsign) : '') + '<div class="d">' +
