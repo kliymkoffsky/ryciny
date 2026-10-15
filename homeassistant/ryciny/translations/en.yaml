@@ -14,6 +14,9 @@ configuration:
     name: Klucz Google Gemini
   openrouter_key:
     name: Klucz OpenRouter
+  mic_gain_db:
+    name: Wzmocnienie mikrofonu (dB)
+    description: Cichy mikrofon za oknem — samoloty rozpoznawane są dopiero od ok. -40 dB; zwykle 12–24 dB. Można też ustawiać w panelu.
   bird_threshold:
     name: Minimalna pewność BirdNET
   range_filter:

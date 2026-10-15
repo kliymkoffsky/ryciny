@@ -8,6 +8,13 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.12.0 - 2026-10-15
+
+- Dodatek HA: **wzmocnienie mikrofonu** (`mic_gain_db`, 0–36 dB) w Ustawieniach panelu i w konfiguracji dodatku.
+  Cichy mikrofon za oknem dawał przy samolocie 0,8 km od domu tylko ok. -43 dB i YAMNet nie rozpoznawał samolotów
+  (wynik „aircraft” 0,01–0,04, próg 0,25). Przy +24 dB oba nagrane przeloty zostały rozpoznane, a w ciszy pojawiły
+  się pojedyncze fałszywe dźwięki. Wzmocnienie działa też na pasek poziomu i odsłuch w teście mikrofonu.
+
 ## 0.11.0 - 2026-10-15
 
 - Aplikacja: dotknięcie pozycji w Dzienniku otwiera ją na pełnym ekranie z dużą ryciną; przesunięcie palcem (albo

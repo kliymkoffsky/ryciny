@@ -20,8 +20,9 @@ log = logging.getLogger(__name__)
 class Listener:
     """Records from the start, before the models are loaded, so the microphone can be tested straight away."""
 
-    def __init__(self, command: str, live, analyzer=None) -> None:
+    def __init__(self, command: str, live, analyzer=None, cfg=None) -> None:
         self.command = command
+        self.cfg = cfg  # mic_gain_db, changeable at run time from the panel
         self.analyzer = analyzer  # set once the models are loaded
         self.live = live
         self.windows: queue.Queue = queue.Queue(maxsize=1)
@@ -48,6 +49,9 @@ class Listener:
                 if len(raw) < size:
                     break
                 window = np.frombuffer(raw, dtype="<f4").copy()
+                gain_db = getattr(self.cfg, "mic_gain_db", 0.0) or 0.0
+                if gain_db:
+                    window = np.clip(window * np.float32(10 ** (gain_db / 20)), -1.0, 1.0)
                 self.last = window
                 self.peak = float(np.max(np.abs(window))) if len(window) else 0.0
                 self.live.level = float(np.sqrt(np.mean(np.square(window, dtype=np.float64))))

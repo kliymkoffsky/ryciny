@@ -33,6 +33,7 @@ class Config:
     sounds_off: list[str] = field(default_factory=lambda: ["sheep", "goat"])
     sounds_on: list[str] = field(default_factory=list)
     lookback_hours: int = 12
+    mic_gain_db: float = 0.0  # a quiet microphone: YAMNet misses planes below about -40 dBFS
 
 
 def load() -> Config:
@@ -71,7 +72,7 @@ def load() -> Config:
 RUNTIME = {
     "bird_threshold": float, "range_filter": bool, "bark_threshold": float, "dog_match": float,
     "radius_km": float, "overhead_max_alt_m": int, "trains": bool, "sounds_off": list, "sounds_on": list,
-    "image_provider": str, "lookback_hours": int,
+    "image_provider": str, "lookback_hours": int, "mic_gain_db": float,
 }
 
 

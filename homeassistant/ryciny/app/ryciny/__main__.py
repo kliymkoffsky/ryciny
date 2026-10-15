@@ -34,7 +34,7 @@ def main() -> None:
     signal.signal(signal.SIGINT, stop)
     # Microphone first: it can be tested in the panel while the models (~80 MB on first start) download.
     live = Live()
-    listener = Listener(cfg.audio_command, live)
+    listener = Listener(cfg.audio_command, live, cfg=cfg)
     listener.start()
     sky = Sky(cfg, store, json.loads(assets.text("aircraft_types.json")))
     rails = Rails(cfg, store)

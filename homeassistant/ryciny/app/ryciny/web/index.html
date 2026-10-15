@@ -169,6 +169,7 @@ async function renderSettings() {
   const toggle = (k, label) => `<label class="set">${label}<input type="checkbox" ${s[k] ? 'checked' : ''} onchange="save({${k}: this.checked})"></label>`;
   const pct = v => Math.round(v * 100) + '%';
   $('#settings').innerHTML = `
+    <h2>Mikrofon</h2>${slider('mic_gain_db', 'Wzmocnienie (dB)', 0, 36, 1)}<p class="soft">Gdy przelatujący blisko samolot daje na pasku poziomu mniej niż ok. -40 dB, YAMNet go nie rozpozna. Zwykle 12–24 dB; za dużo daje fałszywe dźwięki w ciszy.</p>
     <h2>Ptaki</h2>${slider('bird_threshold', 'Minimalna pewność BirdNET', .3, .95, .01, pct)}${toggle('range_filter', 'Tylko gatunki występujące tu o tej porze roku')}
     <h2>Psy</h2>${slider('bark_threshold', 'Próg szczekania', .1, .9, .01, pct)}${slider('dog_match', 'Dopasowanie do znanego psa', .6, .98, .01, pct)}
     <h2>Samoloty</h2>${slider('radius_km', 'Promień (km)', 3, 60, 1)}${slider('overhead_max_alt_m', '„Nad głową” poniżej (m)', 500, 12000, 250)}
