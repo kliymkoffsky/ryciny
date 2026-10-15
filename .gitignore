@@ -1,3 +1,4 @@
 .DS_Store
 public-site/.wrangler/
 public-site/.dev.vars
+.env
