@@ -8,6 +8,12 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.13.1 - 2026-10-15
+
+- Strona publiczna: Dziennik stronicowany po 25 wpisów (‹ nowsze, numery stron, starsze ›).
+- Dodatek HA: przed wysyłką na stronę publiczną pobiera brakujące ryciny ptaków. Dotąd brał tylko te, które ktoś
+  już obejrzał w panelu albo aplikacji, więc część ptaków (np. gęś krótkodzioba) była na stronie bez ryciny.
+
 ## 0.13.0 - 2026-10-15
 
 - **Strona publiczna** „Dźwięki Dolnego Migowa”: https://dzwieki-migowa.qunabu.workers.dev. Worker Cloudflare z KV

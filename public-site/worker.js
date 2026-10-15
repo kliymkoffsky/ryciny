@@ -102,6 +102,8 @@ h2{font-weight:400;font-size:24px;border-bottom:1px solid var(--rule);margin:34p
 .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
 .filters button{font:inherit;font-size:16px;background:none;border:1px solid var(--rule);color:var(--ink);padding:2px 12px;border-radius:14px;cursor:pointer}
 .filters button.on{background:var(--ink);color:var(--paper)}
+.filters button:disabled{opacity:.35;cursor:default}
+.pager{margin-top:14px;justify-content:center;align-items:center}
 .row{display:flex;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule)}
 .thumb{width:58px;height:58px;object-fit:contain;flex:none;mix-blend-mode:multiply}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .thumb{mix-blend-mode:normal}}
@@ -126,9 +128,10 @@ a{color:var(--rubric)}
   <div class="hours" id="hours"></div>
   <div class="hlab"><span>0:00</span><span>6:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div>
 
-  <h2>Dziennik</h2>
+  <h2 id="dziennik">Dziennik</h2>
   <div class="filters" id="filters"></div>
   <div id="entries"></div>
+  <nav class="filters pager" id="pager"></nav>
 
   <footer>
     Rozpoznawanie: <a href="https://birdnet.cornell.edu/">BirdNET</a> i YAMNet, na komputerze w domu; pewność to ocena modelu,
@@ -145,7 +148,8 @@ const hhmm = t => new Date(t).toLocaleTimeString(PL, {hour: '2-digit', minute: '
 const day = t => { const d = new Date(t), n = new Date(); const y = new Date(n); y.setDate(n.getDate() - 1);
   return d.toDateString() === n.toDateString() ? 'dziś' : d.toDateString() === y.toDateString() ? 'wczoraj' : d.toLocaleDateString(PL, {day: 'numeric', month: 'short'}); };
 const art = (kind, key, cls = 'thumb') => '<img class="' + cls + '" loading="lazy" alt="" src="art?kind=' + kind + '&key=' + encodeURIComponent(key) + '" onerror="this.outerHTML=\\'<div class=&quot;' + cls + ' empty&quot;></div>\\'">';
-let state = null, filter = 'all';
+let state = null, filter = 'all', page = 0;
+const PAGE = 25;
 
 async function load() {
   try {
@@ -194,7 +198,7 @@ function render() {
 
   const f = [['all', 'wszystko'], ['birds', 'ptaki'], ['planes', 'samoloty'], ['sounds', 'dźwięki']];
   $('#filters').innerHTML = f.map(([k, l]) => '<button class="' + (k === filter ? 'on' : '') + '" data-f="' + k + '">' + l + '</button>').join('');
-  $('#filters').querySelectorAll('button').forEach(b => b.onclick = () => { filter = b.dataset.f; render(); });
+  $('#filters').querySelectorAll('button').forEach(b => b.onclick = () => { filter = b.dataset.f; page = 0; render(); });
   const rows = [];
   if (filter === 'all' || filter === 'birds') s.birds.forEach(b => rows.push({at: b.lastAt, html: '<div class="row">' + art('BIRD', b.sci) +
     '<div>' + esc(b.name.charAt(0).toUpperCase() + b.name.slice(1)) + '<div class="d">' + day(b.lastAt) + ' ' + hhmm(b.lastAt) + ' · ' + esc(b.sci) +
@@ -206,8 +210,22 @@ function render() {
     '<div>' + esc(e.label) + (e.title ? ': ' + esc(e.title) : '') + '<div class="d">' + day(e.at) + ' ' + hhmm(e.at) + '–' + hhmm(e.lastAt) +
     (e.subtitle ? ' · ' + esc(e.subtitle) : '') + '</div></div></div>'}));
   rows.sort((a, b) => b.at - a.at);
-  $('#entries').innerHTML = rows.slice(0, 300).map(r => r.html).join('') || '<p class="soft">Jeszcze pusto.</p>';
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+  page = Math.min(page, pages - 1);
+  $('#entries').innerHTML = rows.slice(page * PAGE, (page + 1) * PAGE).map(r => r.html).join('') || '<p class="soft">Jeszcze pusto.</p>';
+  $('#pager').innerHTML = pages < 2 ? '' : pager(pages);
+  $('#pager').querySelectorAll('button[data-p]').forEach(b => b.onclick = () => { page = +b.dataset.p; render(); $('#dziennik').scrollIntoView({behavior: 'smooth'}); });
 }
+
+// ‹ nowsze 1 … 4 5 6 … 20 starsze ›
+function pager(pages) {
+  const btn = (p, label, on = false, off = false) => '<button data-p="' + p + '"' + (off ? ' disabled' : '') + ' class="' + (on ? 'on' : '') + '">' + label + '</button>';
+  const show = new Set([0, pages - 1, page - 1, page, page + 1].filter(p => p >= 0 && p < pages));
+  let out = btn(page - 1, '‹ nowsze', false, page === 0), last = -1;
+  [...show].sort((a, b) => a - b).forEach(p => { if (p - last > 1) out += '<span class="soft">…</span>'; out += btn(p, p + 1, p === page); last = p; });
+  return out + btn(page + 1, 'starsze ›', false, page === pages - 1) + '<span class="soft"> ' + rows_label(pages) + '</span>';
+}
+const rows_label = pages => 'strona ' + (page + 1) + ' z ' + pages;
 
 load();
 setInterval(load, 60000);

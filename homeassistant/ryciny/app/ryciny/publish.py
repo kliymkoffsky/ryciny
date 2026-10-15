@@ -79,6 +79,9 @@ class Publisher:
             if f"{kind}:{key}" in self.sent:
                 continue
             f = self.app.art.cached(kind, key)
+            if f is None and kind == "BIRD":
+                # Bird plates are fetched from fugleramme only when someone looks at them: fetch it for the page.
+                f = self.app.art.load(kind, key, key, wait=True)
             if f is None:
                 continue
             ctype = "image/webp" if f.suffix == ".webp" else "image/png"
