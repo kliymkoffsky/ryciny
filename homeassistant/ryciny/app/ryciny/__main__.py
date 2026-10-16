@@ -18,6 +18,7 @@ from .publish import Publisher
 from .rails import Rails
 from .sky import Sky
 from .store import Store
+from .weather import Weather
 
 
 def main() -> None:
@@ -48,7 +49,7 @@ def main() -> None:
     rails.start()
     live.sound = "ładuję modele rozpoznawania…"
     try:
-        listener.analyzer = Analyzer(cfg, assets, store, sky, rails, live)
+        listener.analyzer = Analyzer(cfg, assets, store, sky, rails, live, Weather(cfg))
         live.sound = ""
     except Exception as e:  # noqa: BLE001 - keep the panel and the mic test running
         logging.exception("models")

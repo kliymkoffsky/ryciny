@@ -1,5 +1,5 @@
 {
- "about": "Sounds YAMNet hears that get their own engraving. classes are YAMNet (AudioSet) indices from yamnet_class_map.csv; an event fires when any of them scores at least threshold in a 3 s window. For talking and children only the fact is kept: no audio is stored and no words are recognised. minHits: how many 3 s windows within a minute must hear it before it counts (default 1), for sounds that a single noisy window fakes easily. enabled: false switches a sound off by default (it can be switched back on in the app's settings).",
+ "about": "Sounds YAMNet hears that get their own engraving. classes are YAMNet (AudioSet) indices from yamnet_class_map.csv; an event fires when any of them scores at least threshold in a 3 s window. For talking and children only the fact is kept: no audio is stored and no words are recognised. minHits: how many 3 s windows within a minute must hear it before it counts (default 1), for sounds that a single noisy window fakes easily. enabled: false switches a sound off by default (it can be switched back on in the app's settings). notNearPlane: not counted while a low plane is within 3 km (near an airport a jet's rumble fakes it). weather: \"thunder\" counts only when Open-Meteo has a thunderstorm around (WMO 95-99) in the last 3 hours or the next one.",
  "sounds": [
   {
    "key": "mower",
@@ -44,7 +44,10 @@
     281
    ],
    "threshold": 0.3,
-   "prompt": "Subject: a dramatic thundercloud with a forked bolt of lightning striking down, drawn like a plate in a Victorian atlas of meteorology."
+   "prompt": "Subject: a dramatic thundercloud with a forked bolt of lightning striking down, drawn like a plate in a Victorian atlas of meteorology.",
+   "minHits": 2,
+   "notNearPlane": true,
+   "weather": "thunder"
   },
   {
    "key": "rain",
@@ -66,7 +69,8 @@
     277
    ],
    "threshold": 0.5,
-   "prompt": "Subject: a young birch tree bending in a strong gust of wind with leaves torn off and flying, drawn like a plate in a Victorian atlas of meteorology."
+   "prompt": "Subject: a young birch tree bending in a strong gust of wind with leaves torn off and flying, drawn like a plate in a Victorian atlas of meteorology.",
+   "notNearPlane": true
   },
   {
    "key": "ship",
@@ -80,7 +84,9 @@
     296
    ],
    "threshold": 0.35,
-   "prompt": "Subject: a steam merchant ship with a single funnel and two masts sailing on a short band of waves, as in a Victorian maritime engraving of the port of Danzig."
+   "prompt": "Subject: a steam merchant ship with a single funnel and two masts sailing on a short band of waves, as in a Victorian maritime engraving of the port of Danzig.",
+   "minHits": 2,
+   "notNearPlane": true
   },
   {
    "key": "bells",

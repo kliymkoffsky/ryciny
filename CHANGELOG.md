@@ -8,6 +8,16 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.14.0 - 2026-10-16
+
+- Dodatek HA: mniej fałszywych burz i statków przy lotnisku. Po wzmocnieniu mikrofonu YAMNet brał dudnienie
+  samolotów (GDN 2 km od domu) za grzmot i statek: 16.10 zapisał 8 „burz” w słoneczny dzień, każdą w pobliżu przelotu.
+  - `notNearPlane` w `sounds.json` (burza, statek, wiatr): nie liczą się, gdy nisko leci samolot w promieniu 3 km.
+  - Burza (`weather: thunder`) liczy się tylko, gdy Open-Meteo ma burzę w okolicy (kody WMO 95–99) w ostatnich 3
+    godzinach albo w następnej. Gdy pogody nie da się sprawdzić, decyduje sam mikrofon.
+  - Burza i statek wymagają co najmniej 2 trafień w ciągu minuty (`minHits`).
+- API dodatku: `DELETE /api/sounds?key=…&since=…&until=…` usuwa fałszywe wpisy jednego dźwięku z Dziennika.
+
 ## 0.13.1 - 2026-10-15
 
 - Strona publiczna: Dziennik stronicowany po 25 wpisów (‹ nowsze, numery stron, starsze ›).

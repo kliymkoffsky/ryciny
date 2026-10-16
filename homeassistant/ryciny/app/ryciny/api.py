@@ -212,7 +212,12 @@ class App:
                 return self._json({"ok": True})
 
             def do_DELETE(self):  # noqa: N802
-                m = re.fullmatch(r"/api/dogs/([0-9a-f-]+)", urllib.parse.urlparse(self.path).path.rstrip("/"))
+                u = urllib.parse.urlparse(self.path)
+                if u.path.rstrip("/") == "/api/sounds":
+                    q = dict(urllib.parse.parse_qsl(u.query))
+                    n = app.store.delete_sounds(q.get("key", ""), int(q.get("since", 0)), int(q.get("until", 2**62)))
+                    return self._json({"deleted": n})
+                m = re.fullmatch(r"/api/dogs/([0-9a-f-]+)", u.path.rstrip("/"))
                 if not m:
                     return self._json({"error": "not found"}, 404)
                 app.store.delete_dog(m[1])

@@ -13,6 +13,7 @@ from .ml import BirdNet, Yamnet
 from .store import Store
 
 AIRCRAFT_THRESHOLD = 0.25
+PLANE_MASK_KM = 3.0  # GDN is 2 km away: jets on approach rumble like thunder, ships and wind
 
 
 class Live:
@@ -35,7 +36,8 @@ class Live:
 
 
 class Analyzer:
-    def __init__(self, cfg, assets, store: Store, sky, rails, live: Live) -> None:
+    def __init__(self, cfg, assets, store: Store, sky, rails, live: Live, weather=None) -> None:
+        self.weather = weather
         self.cfg = cfg
         self.store = store
         self.sky = sky
@@ -75,6 +77,10 @@ class Analyzer:
             while recent[0] < at - 60_000:
                 recent.popleft()
             if len(recent) < sound.get("minHits", 1):
+                continue
+            if sound.get("notNearPlane") and self.sky.near(PLANE_MASK_KM):
+                continue
+            if sound.get("weather") == "thunder" and self.weather and self.weather.thunder() is False:
                 continue
             train = self.rails.match(at) if sound["key"] == "train" else None
             if train:

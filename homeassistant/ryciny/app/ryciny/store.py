@@ -132,6 +132,16 @@ class Store:
             self.j["sounds"] = [s for s in sounds if at - s["lastAt"] < KEEP_MS][-MAX_SOUNDS:]
             self._changed()
 
+    def delete_sounds(self, key: str, since: int, until: int) -> int:
+        """Drops false events of one sound (e.g. jets taken for thunder) between two times; returns how many."""
+        with self.lock:
+            before = len(self.j["sounds"])
+            self.j["sounds"] = [s for s in self.j["sounds"] if not (s["key"] == key and since <= s["at"] <= until)]
+            n = before - len(self.j["sounds"])
+            if n:
+                self._changed()
+            return n
+
     def fill_sounds(self, key: str, details) -> None:
         """Re-derives events' details from the current timetable; details(event) -> (title, subtitle, variant) or None."""
         with self.lock:

@@ -69,6 +69,12 @@ class Sky:
             return {"planes": self.planes, "overhead": self.overhead, "updatedAt": self.updated_at,
                     "error": self.error, "heardAt": self.heard_at}
 
+    def near(self, km: float, within_ms: int = 90_000) -> bool:
+        """A low plane this close was overhead in the last [within_ms]: its rumble fakes thunder, ships and wind."""
+        with self.lock:
+            o, at = self.overhead, self.updated_at
+        return bool(o) and now_ms() - at < within_ms and o["distKm"] <= km and (o["altM"] or 0) <= self.cfg.overhead_max_alt_m
+
     def heard(self, at: int) -> None:
         with self.lock:
             self.heard_at = at
