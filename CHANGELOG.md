@@ -8,6 +8,15 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.21.0 - 2026-10-17
+
+- **Nagrania 9 s** zamiast 3 s: 3 s przed wykryciem, okno wykrycia i 3 s po nim (analiza idzie jedno okno za
+  mikrofonem, czyli z 3 s opóźnieniem). Dotyczy ptaków, dźwięków okolicy i najlepszych nagrań gatunków.
+- Dodatek HA: nagrania w **MP3** (ok. 70 kB na 9 s; `soundfile`/libsndfile), gra w każdej przeglądarce, także na
+  iPhone'ach. Na stronę publiczną nagranie ptaka trafia tylko, gdy YAMNet nie słyszy ludzi ani muzyki w całych 9 s.
+- Aplikacja na samym telefonie: 9 s WAV w 24 kHz.
+- Starsze nagrania (3 s WAV) zostają i dalej grają.
+
 ## 0.20.1 - 2026-10-17
 
 - The Frame: dodatek nie przerywa już oglądania. Przed wysyłką pyta telewizor o Art Mode

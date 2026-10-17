@@ -58,8 +58,13 @@ class ListenService : Service() {
         graph.sky.setActive("service", true)
         val windows = Channel<Pair<FloatArray, Long>>(1, BufferOverflow.DROP_OLDEST)
         scope.launch {
+            // One window behind the microphone, so a recording can take 3 s before and after the detection (9 s).
+            var before: FloatArray? = null
+            var held: Pair<FloatArray, Long>? = null
             for ((window, at) in windows) {
-                runCatching { analyzer.analyze(window, at) }.onFailure { Log.e(TAG, "analyze", it) }
+                held?.let { (w, t) -> runCatching { analyzer.analyze(w, t, before, window) }.onFailure { Log.e(TAG, "analyze", it) } }
+                before = held?.first
+                held = window to at
             }
         }
 

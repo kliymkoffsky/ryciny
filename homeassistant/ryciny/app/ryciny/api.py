@@ -218,14 +218,14 @@ class App:
                         rel = found.relative_to(app.art.root).as_posix()
                         ctype = "image/webp" if found.suffix == ".webp" else "image/png"
                         return self._send(200, found.read_bytes(), ctype, {"X-Ryciny-File": rel, "Cache-Control": "max-age=31536000"})
-                    m = re.fullmatch(r"/api/best/([0-9a-f]{8}\.wav)", path)
+                    m = re.fullmatch(r"/api/best/([0-9a-f]{8}\.(?:wav|mp3))", path)
                     if m:
                         f = app.store.best_dir / m[1]
-                        return self._send(200, f.read_bytes(), "audio/wav") if f.exists() else self._json({"error": "no clip"}, 404)
-                    m = re.fullmatch(r"/api/clips/([0-9a-f]{8}\.wav)", path)
+                        return self._send(200, f.read_bytes(), "audio/mpeg" if f.suffix == ".mp3" else "audio/wav") if f.exists() else self._json({"error": "no clip"}, 404)
+                    m = re.fullmatch(r"/api/clips/([0-9a-f]{8}\.(?:wav|mp3))", path)
                     if m:
                         f = app.store.clips / m[1]
-                        return self._send(200, f.read_bytes(), "audio/wav") if f.exists() else self._json({"error": "no clip"}, 404)
+                        return self._send(200, f.read_bytes(), "audio/mpeg" if f.suffix == ".mp3" else "audio/wav") if f.exists() else self._json({"error": "no clip"}, 404)
                     if path == "/api/plate.png":
                         w, h = int(q.get("w", 800)), int(q.get("h", 480))
                         palette = q.get("palette", "full")

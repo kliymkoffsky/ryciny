@@ -74,6 +74,24 @@ def cosine(a, b) -> float:
     return 0.0 if na == 0 or nb == 0 else float(np.dot(a, b) / (na * nb))
 
 
+def mp3_bytes(x: np.ndarray, rate: int = 48_000) -> bytes:
+    """A detection's recording: MP3 (plays everywhere, about 40 kB for 9 s); WAV if MP3 cannot be written here."""
+    peak = max(float(np.max(np.abs(x))) if len(x) else 0.0, 1e-4)
+    y = np.clip(x * min(0.9 / peak, 8.0), -1, 1).astype(np.float32)
+    try:
+        import soundfile as sf
+
+        buf = io.BytesIO()
+        sf.write(buf, y, rate, format="MP3", subtype="MPEG_LAYER_III", compression_level=0.25)
+        return buf.getvalue()
+    except Exception:  # noqa: BLE001
+        return wav_bytes(x, rate)
+
+
+def clip_ext(data: bytes) -> str:
+    return ".wav" if data[:4] == b"RIFF" else ".mp3"
+
+
 def wav_bytes(x: np.ndarray, rate: int, normalize: bool = True) -> bytes:
     """16-bit WAV; barks are made louder for listening, the microphone test is kept as recorded."""
     peak = max(float(np.max(np.abs(x))) if len(x) else 0.0, 1e-4)

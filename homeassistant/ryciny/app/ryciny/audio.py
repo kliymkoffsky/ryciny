@@ -70,11 +70,13 @@ class Listener:
             time.sleep(5)
 
     def _analyze(self) -> None:
+        # One window behind the microphone, so a detection's recording can take 3 s before and 3 s after it (9 s).
+        before = held = None
         while True:
             window, at = self.windows.get()
-            if self.analyzer is None:
-                continue
-            try:
-                self.analyzer.analyze(window, at)
-            except Exception:  # noqa: BLE001
-                log.exception("analyze")
+            if self.analyzer is not None and held is not None:
+                try:
+                    self.analyzer.analyze(held[0], held[1], before=before, after=window)
+                except Exception:  # noqa: BLE001
+                    log.exception("analyze")
+            before, held = (held[0] if held else None), (window, at)

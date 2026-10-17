@@ -36,6 +36,10 @@ def now_ms() -> int:
     return int(time.time() * 1000)
 
 
+def _ext(data: bytes) -> str:
+    return ".wav" if data[:4] == b"RIFF" else ".mp3"
+
+
 def local(ms: int):
     import datetime as dt
 
@@ -108,7 +112,7 @@ class Store:
             data = clip()
         except Exception:  # noqa: BLE001 - a recording is a bonus, never a reason to lose the detection
             return
-        name = f"{uuid.uuid4().hex[:8]}.wav"
+        name = uuid.uuid4().hex[:8] + _ext(data)
         (self.clips / name).write_bytes(data)
         old = entry.get("clip")
         entry["clip"] = name
@@ -129,7 +133,7 @@ class Store:
                     e["clip"] = None
         used = {e.get("clip") for key in ("birds", "sounds", "barks") for e in self.j[key]}
         for f in self.clips.iterdir():
-            if f.name not in used and (f.suffix == ".wav" or now - f.stat().st_mtime * 1000 > CLIP_KEEP_MS):
+            if f.name not in used and (f.suffix in (".wav", ".mp3") or now - f.stat().st_mtime * 1000 > CLIP_KEEP_MS):
                 f.unlink(missing_ok=True)
 
     def _keep_best(self, sci: str, name: str, conf: float, at: int, clip: Clip, public: bool) -> None:
@@ -140,7 +144,7 @@ class Store:
             data = clip()
         except Exception:  # noqa: BLE001
             return
-        file = f"{uuid.uuid4().hex[:8]}.wav"
+        file = uuid.uuid4().hex[:8] + _ext(data)
         (self.best_dir / file).write_bytes(data)
         if best:
             (self.best_dir / best["clip"]).unlink(missing_ok=True)
@@ -161,7 +165,7 @@ class Store:
         best: dict = {}
         for b in sorted((b for b in self.j["birds"] if b.get("clip") and (self.clips / b["clip"]).exists()), key=lambda b: b["conf"]):
             old = best.get(b["sci"])
-            file = f"{uuid.uuid4().hex[:8]}.wav"
+            file = uuid.uuid4().hex[:8] + Path(b["clip"]).suffix
             (self.best_dir / file).write_bytes((self.clips / b["clip"]).read_bytes())
             if old:
                 (self.best_dir / old["clip"]).unlink(missing_ok=True)

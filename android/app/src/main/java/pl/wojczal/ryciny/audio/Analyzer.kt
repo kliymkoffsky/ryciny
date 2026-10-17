@@ -48,7 +48,10 @@ class Analyzer(
         return System.currentTimeMillis() - sky.updatedAt < 90_000L && o.distKm <= km && (o.altM ?: 0) <= settings.value.overheadMaxAltM
     }
 
-    fun analyze(window: FloatArray, at: Long) {
+    fun analyze(window: FloatArray, at: Long, before: FloatArray? = null, after: FloatArray? = null) {
+        // The recording: 3 s before, the detection, 3 s after; at 24 kHz WAV (half the size, birdsong up to 12 kHz).
+        val nine = listOfNotNull(before, window, after).let { parts -> FloatArray(parts.sumOf { it.size }).also { out -> var o = 0; parts.forEach { it.copyInto(out, o); o += it.size } } }
+        val record: (java.io.File) -> Unit = { f -> Dsp.writeWav(f, Dsp.halve(nine), 24_000) }
         val s = settings.value
         // The phone's own playback (a video, a voice message, a notification) reaches the microphone and
         // would be logged as music, talking or a siren: while it plays, nothing is analysed.
@@ -56,7 +59,7 @@ class Analyzer(
             state.value = state.value.copy(level = Dsp.rms(window), sound = "telefon coś odtwarza, pomijam", at = at)
             return
         }
-        birds(window, at, s.birdThreshold, s.rangeFilter)
+        birds(window, at, s.birdThreshold, s.rangeFilter, record)
 
         val audio16 = Dsp.decimate48to16(window)
         val frames = (0 until 3).map { i -> yamnet.run(audio16.copyOfRange(i * 16_000, i * 16_000 + Yamnet.SAMPLES)) }
@@ -79,23 +82,23 @@ class Analyzer(
             if (sound.weather == "thunder" && weather.thunder() == false) return@forEach
             val train = if (sound.key == "train") rails.match(at) else null
             // Never a recording of people: talking and children are kept as a fact only.
-            val record: ((File) -> Unit)? = if (sound.key in NO_AUDIO) null else { f -> Dsp.writeWav(f, window, 48_000) }
+            val soundRecord: ((File) -> Unit)? = if (sound.key in NO_AUDIO) null else record
             if (train == null) {
-                store.addSound(sound.key, at, score, record = record)
+                store.addSound(sound.key, at, score, record = soundRecord)
             } else {
-                store.addSound(sound.key, at, score, train.title, "${train.route} · planowo ${train.hhmm}", train.agency, record)
+                store.addSound(sound.key, at, score, train.title, "${train.route} · planowo ${train.hhmm}", train.agency, soundRecord)
             }
         }
         if (dogScores.max() >= s.barkThreshold) bark(audio16, frames, dogScores, at, s.barkThreshold, s.dogMatch)
     }
 
-    private fun birds(window: FloatArray, at: Long, threshold: Float, rangeFilter: Boolean) {
+    private fun birds(window: FloatArray, at: Long, threshold: Float, rangeFilter: Boolean, record: (File) -> Unit) {
         val conf = birdNet.predict(window)
         val here = place.value
         val mask = if (rangeFilter) birdNet.rangeMask(here.lat, here.lon) else null
         birdNet.labels.forEachIndexed { i, label ->
             if (conf[i] >= threshold && label.bird && (mask == null || mask[i])) {
-                store.addBird(label.sci, label.name, conf[i], at) { f -> Dsp.writeWav(f, window, 48_000) }
+                store.addBird(label.sci, label.name, conf[i], at, record)
             }
         }
     }

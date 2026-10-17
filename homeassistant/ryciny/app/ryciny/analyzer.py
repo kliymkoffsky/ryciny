@@ -60,12 +60,23 @@ class Analyzer:
             return True
         return sound.get("enabled", True)
 
-    def analyze(self, window: np.ndarray, at: int) -> None:
+    def _people(self, window: np.ndarray) -> float:
+        a16 = dsp.decimate48to16(window)
+        return max(float(max(self.yamnet.run(a16[i * 16_000:i * 16_000 + Yamnet.SAMPLES])[0][k] for k in PEOPLE)) for i in range(3))
+
+    def analyze(self, window: np.ndarray, at: int, before: np.ndarray | None = None, after: np.ndarray | None = None) -> None:
         audio16 = dsp.decimate48to16(window)
         frames = [self.yamnet.run(audio16[i * 16_000:i * 16_000 + Yamnet.SAMPLES]) for i in range(3)]
-        # A bird's recording may go on the public page only when YAMNet hears no people and no music in it.
+        # The recording: 3 s before, the detection, 3 s after (9 s), as MP3; made only when a recording is kept.
+        nine = np.concatenate([w for w in (before, window, after) if w is not None])
+        clip = lambda: dsp.mp3_bytes(nine)  # noqa: E731
+        # A bird's recording may go on the public page only when YAMNet hears no people and no music in all 9 s.
         people = max(float(max(s[k] for k in PEOPLE)) for s, _ in frames)
-        self._birds(window, at, public=people < PEOPLE_MAX)
+        conf = self.birdnet.predict(window)
+        public = people < PEOPLE_MAX
+        if public and (conf >= self.cfg.bird_threshold).any():  # neighbours checked only when a bird may be kept
+            public = all(self._people(w) < PEOPLE_MAX for w in (before, after) if w is not None)
+        self._birds(conf, at, public, clip)
         dog_scores = [float(max(s[k] for k in Yamnet.DOG)) for s, _ in frames]
         aircraft = max(float(max(s[k] for k in Yamnet.AIRCRAFT)) for s, _ in frames)
         top = max(((int(np.argmax(s)), float(np.max(s))) for s, _ in frames), key=lambda t: t[1])
@@ -89,23 +100,21 @@ class Analyzer:
                 continue
             if sound.get("weather") == "thunder" and self.weather and self.weather.thunder() is False:
                 continue
-            clip = None if sound["key"] in NO_AUDIO else (lambda: dsp.wav_bytes(window, 48_000))
+            sound_clip = None if sound["key"] in NO_AUDIO else clip
             train = self.rails.match(at) if sound["key"] == "train" else None
             if train:
-                self.store.add_sound(sound["key"], at, score, *self.rails.details(train), clip=clip)
+                self.store.add_sound(sound["key"], at, score, *self.rails.details(train), clip=sound_clip)
             else:
-                self.store.add_sound(sound["key"], at, score, clip=clip)
+                self.store.add_sound(sound["key"], at, score, clip=sound_clip)
         if max(dog_scores) >= self.cfg.bark_threshold:
             self._bark(audio16, frames, dog_scores, at)
 
-    def _birds(self, window: np.ndarray, at: int, public: bool = False) -> None:
-        conf = self.birdnet.predict(window)
+    def _birds(self, conf: np.ndarray, at: int, public: bool, clip) -> None:
         mask = self.birdnet.range_mask(self.cfg.lat, self.cfg.lon) if self.cfg.range_filter else None
         for i in np.nonzero(conf >= self.cfg.bird_threshold)[0]:
             label = self.birdnet.labels[i]
             if label.bird and (mask is None or mask[i]):
-                self.store.add_bird(label.sci, label.name, float(conf[i]), at, clip=lambda: dsp.wav_bytes(window, 48_000),
-                                    public=public)
+                self.store.add_bird(label.sci, label.name, float(conf[i]), at, clip=clip, public=public)
 
     def _bark(self, audio16, frames, dog_scores, at: int) -> None:
         barking = [i for i, s in enumerate(dog_scores) if s >= self.cfg.bark_threshold * 0.7] or [int(np.argmax(dog_scores))]

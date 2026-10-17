@@ -3,7 +3,7 @@
 // visitors only ever read from KV, nothing reaches the home network.
 
 const ART_KINDS = new Set(["BIRD", "PLANE", "SCENE"]);
-const CLIP = /^[0-9a-f]{8}\.wav$/;
+const CLIP = /^[0-9a-f]{8}\.(wav|mp3)$/;
 const CLIP_TTL_S = 14 * 86400; // bird recordings disappear from KV after 14 days
 
 export default {
@@ -66,7 +66,8 @@ export default {
       if (hit) return hit;
       const value = await env.DATA.get(`clip:${name}`, { type: "arrayBuffer" });
       if (!value) return new Response("missing", { status: 404 });
-      const res = new Response(value, { headers: { "Content-Type": "audio/wav", "Cache-Control": "public, max-age=86400" } });
+      const type = name.endsWith(".mp3") ? "audio/mpeg" : "audio/wav";
+      const res = new Response(value, { headers: { "Content-Type": type, "Cache-Control": "public, max-age=86400" } });
       ctx.waitUntil(cache.put(req, res.clone()));
       return res;
     }

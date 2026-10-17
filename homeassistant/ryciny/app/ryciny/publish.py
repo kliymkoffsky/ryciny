@@ -105,7 +105,7 @@ class Publisher:
             if not f.exists():
                 b.pop("audio")
                 continue
-            self._put("/ingest/clip?" + urllib.parse.urlencode({"name": name}), f.read_bytes(), "audio/wav")
+            self._put("/ingest/clip?" + urllib.parse.urlencode({"name": name}), f.read_bytes(), "audio/mpeg" if f.suffix == ".mp3" else "audio/wav")
             self.sent.add(f"clip:{name}")
             log.info("publish: clip %s %s", b["sci"], name)
 
@@ -119,7 +119,7 @@ class Publisher:
             if not f.exists():
                 best.pop(sci)
                 continue
-            self._put("/ingest/clip?" + urllib.parse.urlencode({"name": name, "keep": "1"}), f.read_bytes(), "audio/wav")
+            self._put("/ingest/clip?" + urllib.parse.urlencode({"name": name, "keep": "1"}), f.read_bytes(), "audio/mpeg" if f.suffix == ".mp3" else "audio/wav")
             self.sent.add(f"clip:{name}")
             log.info("publish: best clip %s %s", sci, name)
 

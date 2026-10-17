@@ -95,6 +95,9 @@ object Dsp {
         return if (na == 0f || nb == 0f) 0f else dot / (sqrt(na) * sqrt(nb))
     }
 
+    /** 48 kHz to 24 kHz: a two-tap average (a gentle low-pass) and every other sample. */
+    fun halve(x: FloatArray): FloatArray = FloatArray(x.size / 2) { i -> (x[2 * i] + x[2 * i + 1]) / 2 }
+
     fun writeWav(file: File, x: FloatArray, rate: Int) {
         val peak = x.maxOf { abs(it) }.coerceAtLeast(1e-4f)
         val gain = (0.9f / peak).coerceAtMost(8f)

@@ -3,3 +3,4 @@ numpy<3
 pillow>=10
 certifi
 websockets>=12
+soundfile>=0.12
