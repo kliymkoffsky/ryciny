@@ -160,6 +160,12 @@ class Remote(
         return target
     }
 
+    /** The add-on's statistics (same numbers as its panel and the public page); null when it cannot be reached. */
+    suspend fun stats(): Stats? = runCatching {
+        val r = Http.exchange("GET", "$base/api/stats")
+        if (r.code == 200) json.decodeFromString(Stats.serializer(), String(r.body)) else null
+    }.getOrNull()
+
     suspend fun clip(name: String, into: File): File? {
         val r = Http.exchange("GET", "$base/api/clips/$name")
         if (r.code != 200) return null

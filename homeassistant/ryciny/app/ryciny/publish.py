@@ -12,6 +12,7 @@ import time
 import urllib.parse
 import urllib.request
 
+from . import stats
 from .store import now_ms
 
 log = logging.getLogger(__name__)
@@ -64,7 +65,9 @@ class Publisher:
             try:
                 if self.sent is None:
                     self.sent = set(json.loads(self._put("/ingest/has", b"", "text/plain")))
-                state = public_state(self.app.store.snapshot(), self.app.sounds, self.app.sound_on)
+                journal = self.app.store.snapshot()
+                state = public_state(journal, self.app.sounds, self.app.sound_on)
+                state["stats"] = stats.compute(journal, self.app.store.history_snapshot(), self.app.sounds, self.app.sound_on, PRIVATE_SOUNDS)
                 self._art(state)
                 self._put("/ingest/state", json.dumps(state, ensure_ascii=False).encode(), "application/json")
                 version, self.error = self.app.store.version, None

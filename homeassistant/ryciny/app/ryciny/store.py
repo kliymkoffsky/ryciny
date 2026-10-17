@@ -8,12 +8,24 @@ import threading
 import time
 import uuid
 from pathlib import Path
+from typing import Callable
+
+try:
+    from zoneinfo import ZoneInfo
+
+    ZONE = ZoneInfo(__import__("os").environ.get("TZ") or "Europe/Warsaw")
+except Exception:  # noqa: BLE001 - no tz database: the container's local time
+    ZONE = None
+
+Clip = Callable[[], bytes] | None
 
 BIRD_GAP_MS = 60_000
 BARK_GAP_MS = 30_000
 PLANE_GAP_MS = 10 * 60_000
 SOUND_GAP_MS = 5 * 60_000
-KEEP_MS = 7 * 24 * 3600_000
+KEEP_MS = 14 * 24 * 3600_000
+CLIP_KEEP_MS = 14 * 24 * 3600_000  # recordings of what was detected, on the add-on's disk only
+HISTORY_DAYS = 400  # birds per day and hour, for the chance of hearing a species
 MAX_SOUNDS = 1_000
 MAX_BARKS = 300
 MAX_PLANES = 500
@@ -24,14 +36,23 @@ def now_ms() -> int:
     return int(time.time() * 1000)
 
 
+def local(ms: int):
+    import datetime as dt
+
+    return dt.datetime.fromtimestamp(ms / 1000, ZONE) if ZONE else dt.datetime.fromtimestamp(ms / 1000)
+
+
 class Store:
     def __init__(self, data: Path) -> None:
         self.file = data / "journal.json"
+        self.history_file = data / "history.json"
         self.clips = data / "clips"
         self.clips.mkdir(parents=True, exist_ok=True)
         self.lock = threading.RLock()
         self.version = 0
         self.j = self._load()
+        self.history = self._load_history()
+        self._pruned = 0.0
         self._dirty = False
         threading.Thread(target=self._saver, daemon=True).start()
 
@@ -53,16 +74,68 @@ class Store:
         self.version += 1
         self._dirty = True
 
-    def add_bird(self, sci: str, name: str, conf: float, at: int) -> None:
+    def add_bird(self, sci: str, name: str, conf: float, at: int, clip: Clip = None) -> None:
         with self.lock:
             birds = self.j["birds"]
             last = next((b for b in reversed(birds) if b["sci"] == sci), None)
             if last is not None and at - last["lastAt"] < BIRD_GAP_MS:
+                better = conf > last["conf"]
                 last.update(lastAt=at, count=last["count"] + 1, conf=max(last["conf"], conf))
+                if better or not last.get("clip"):
+                    self._keep_clip(last, clip)
             else:
-                birds.append({"sci": sci, "name": name, "conf": conf, "at": at, "lastAt": at, "count": 1})
+                last = {"sci": sci, "name": name, "conf": conf, "at": at, "lastAt": at, "count": 1}
+                self._keep_clip(last, clip)
+                birds.append(last)
+            self._count_bird(sci, name, at, conf=conf)
             self.j["birds"] = [b for b in birds if at - b["lastAt"] < KEEP_MS]
+            self._prune_clips(at)
             self._changed()
+
+    # --- recordings: the best 3 s of each event, kept CLIP_KEEP_MS ----------------------------------
+
+    def _keep_clip(self, entry: dict, clip: Clip) -> None:
+        """Writes [clip] as the entry's recording (only now, at the detection), replacing a worse one."""
+        if clip is None:
+            return
+        try:
+            data = clip()
+        except Exception:  # noqa: BLE001 - a recording is a bonus, never a reason to lose the detection
+            return
+        name = f"{uuid.uuid4().hex[:8]}.wav"
+        (self.clips / name).write_bytes(data)
+        old = entry.get("clip")
+        entry["clip"] = name
+        if old:
+            (self.clips / old).unlink(missing_ok=True)
+
+    def _prune_clips(self, now: int, force: bool = False) -> None:
+        """Deletes recordings older than CLIP_KEEP_MS or no longer in the journal; at most every 10 minutes."""
+        if not force and time.time() - self._pruned < 600:
+            return
+        self._pruned = time.time()
+        for key in ("birds", "sounds", "barks"):
+            for e in self.j[key]:
+                if e.get("clip") and now - e["lastAt"] >= CLIP_KEEP_MS:
+                    (self.clips / e["clip"]).unlink(missing_ok=True)
+                    e["clip"] = None
+        used = {e.get("clip") for key in ("birds", "sounds", "barks") for e in self.j[key]}
+        for f in self.clips.iterdir():
+            if f.name not in used and (f.suffix == ".wav" or now - f.stat().st_mtime * 1000 > CLIP_KEEP_MS):
+                f.unlink(missing_ok=True)
+
+    # --- history: birds per day and hour, kept HISTORY_DAYS ----------------------------------------
+
+    def _count_bird(self, sci: str, name: str, at: int, n: int = 1, conf: float = 0.0) -> None:
+        t = local(at)
+        day = self.history.setdefault(t.strftime("%Y-%m-%d"), {})
+        b = day.setdefault(sci, {"n": name, "h": [0] * 24, "c": 0.0})
+        b["h"][t.hour] += n
+        b["c"] = round(b.get("c", 0.0) + conf * n, 3)  # sum of BirdNET confidences, for the average
+
+    def history_snapshot(self) -> dict:
+        with self.lock:
+            return json.loads(json.dumps(self.history))
 
     def add_bark(self, bark: dict) -> None:
         with self.lock:
@@ -76,12 +149,8 @@ class Store:
                             clip=bark["clip"] if keep_new_clip else last.get("clip"))
             else:
                 barks.append(bark)
-            kept = [b for b in barks if bark["at"] - b["lastAt"] < KEEP_MS][-MAX_BARKS:]
-            clips = {b.get("clip") for b in kept}
-            for f in self.clips.iterdir():
-                if f.name not in clips:
-                    f.unlink(missing_ok=True)
-            self.j["barks"] = kept
+            self.j["barks"] = [b for b in barks if bark["at"] - b["lastAt"] < KEEP_MS][-MAX_BARKS:]
+            self._prune_clips(bark["at"])
             self._changed()
 
     def tag_bark(self, bark_id: str, dog_id: str) -> bool:
@@ -118,18 +187,25 @@ class Store:
                     b.update(dogId=None, similarity=0.0)
             self._changed()
 
-    def add_sound(self, key: str, at: int, score: float, title: str = "", subtitle: str = "", variant: str = "") -> None:
+    def add_sound(self, key: str, at: int, score: float, title: str = "", subtitle: str = "", variant: str = "",
+                  clip: Clip = None) -> None:
         with self.lock:
             sounds = self.j["sounds"]
             last = next((s for s in reversed(sounds) if s["key"] == key), None)
             same = last is not None and at - last["lastAt"] < SOUND_GAP_MS and (not title or not last["title"] or title == last["title"])
             if same:
+                better = score > last["score"]
                 last.update(lastAt=at, count=last["count"] + 1, score=max(last["score"], score),
                             title=last["title"] or title, subtitle=last["subtitle"] or subtitle, variant=last["variant"] or variant)
+                if better or not last.get("clip"):
+                    self._keep_clip(last, clip)
             else:
-                sounds.append({"key": key, "at": at, "lastAt": at, "count": 1, "score": score,
-                               "title": title, "subtitle": subtitle, "variant": variant})
+                last = {"key": key, "at": at, "lastAt": at, "count": 1, "score": score,
+                        "title": title, "subtitle": subtitle, "variant": variant}
+                self._keep_clip(last, clip)
+                sounds.append(last)
             self.j["sounds"] = [s for s in sounds if at - s["lastAt"] < KEEP_MS][-MAX_SOUNDS:]
+            self._prune_clips(at)
             self._changed()
 
     def delete_sounds(self, key: str, since: int, until: int) -> int:
@@ -139,6 +215,7 @@ class Store:
             self.j["sounds"] = [s for s in self.j["sounds"] if not (s["key"] == key and since <= s["at"] <= until)]
             n = before - len(self.j["sounds"])
             if n:
+                self._prune_clips(now_ms(), force=True)
                 self._changed()
             return n
 
@@ -194,15 +271,27 @@ class Store:
             return empty
         return {**empty, **j}
 
+    def _load_history(self) -> dict:
+        try:
+            return json.loads(self.history_file.read_text())
+        except (OSError, ValueError):
+            # First start with history: what the journal still has (the newest moment of each entry).
+            self.history = {}
+            for b in self.j["birds"]:
+                self._count_bird(b["sci"], b["name"], b["lastAt"], b.get("count", 1), b["conf"])
+            return self.history
+
     def flush(self) -> None:
         with self.lock:
             if not self._dirty:
                 return
-            text = json.dumps(self.j, ensure_ascii=False)
             self._dirty = False
-            tmp = self.file.with_suffix(".json.tmp")
-            tmp.write_text(text)
-            tmp.replace(self.file)
+            cutoff = local(now_ms() - HISTORY_DAYS * 86_400_000).strftime("%Y-%m-%d")
+            self.history = {d: v for d, v in self.history.items() if d >= cutoff}
+            for path, data in ((self.file, self.j), (self.history_file, self.history)):
+                tmp = path.with_suffix(".json.tmp")
+                tmp.write_text(json.dumps(data, ensure_ascii=False))
+                tmp.replace(path)
 
     def _saver(self) -> None:
         while True:

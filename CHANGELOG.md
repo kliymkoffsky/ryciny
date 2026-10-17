@@ -8,6 +8,21 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.15.0 - 2026-10-17
+
+- Dodatek HA: **nagrania wykrytych dźwięków**. Przy wykryciu ptaka albo dźwięku zostaje 3 s nagrania najlepszego
+  momentu danego zdarzenia (przy lepszym trafieniu poprzednie jest podmieniane), tylko na dysku HA, przez 14 dni;
+  starsze są kasowane. Rozmów i dzieci nie nagrywa. Odsłuch ▶ w Dzienniku panelu i aplikacji (tryb Home Assistant).
+  Nie trafiają na stronę publiczną.
+- Dziennik dodatku trzyma 14 dni (było 7), a osobna historia (`history.json`, rok) zlicza ptaki na dzień i godzinę.
+- **Statystyki** (`/api/stats`, jedna implementacja dla panelu, aplikacji i strony): gatunki dziś, 7 i 30 dni,
+  najczęstsze ptaki, rozkład godzinowy, samoloty i dźwięki okolicy, a do tego:
+  - **szansa usłyszenia** ptaka teraz (na ilu dniach nasłuchu odezwał się o tej godzinie) i w ciągu dnia, z godziną,
+    o której najczęściej go słychać;
+  - **średnia pewność BirdNET** każdego gatunku z 30 dni, ze wszystkich wykryć.
+- Panel HA: zakładka **Statystyki**. Aplikacja: zakładka **Statystyki** (w trybie HA z dodatku, na samym telefonie
+  liczona z jego Dziennika). Strona publiczna: szansa usłyszenia i średnia pewność.
+
 ## 0.14.0 - 2026-10-16
 
 - Dodatek HA: mniej fałszywych burz i statków przy lotnisku. Po wzmocnieniu mikrofonu YAMNet brał dudnienie

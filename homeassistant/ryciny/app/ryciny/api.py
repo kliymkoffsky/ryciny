@@ -14,7 +14,7 @@ from PIL import Image
 
 from pathlib import Path
 
-from . import __version__, config, dsp, plate
+from . import __version__, config, dsp, plate, stats
 from .store import now_ms
 
 WEB = Path(__file__).parent / "web"
@@ -137,6 +137,8 @@ class App:
                                "has": bool(app.listener and app.listener.last is not None)}
                         return self._json({"version": app.store.version, "live": app.live.json(), "sky": app.sky.state(),
                                            "rails": app.rails.state(), "artError": app.art.error, "mic": mic})
+                    if path == "/api/stats":
+                        return self._json(stats.compute(app.store.snapshot(), app.store.history_snapshot(), app.sounds, app.sound_on))
                     if path == "/api/mic.wav":
                         last = app.listener.last if app.listener else None
                         if last is None:

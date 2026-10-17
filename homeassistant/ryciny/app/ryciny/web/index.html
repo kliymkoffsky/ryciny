@@ -33,6 +33,13 @@ button.act{font:inherit;font-size:16px;color:var(--rubric);background:none;borde
 label.set{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 0}
 input[type=range]{width:50%}
 input,select{font:inherit}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.stat{border:1px solid rgba(107,91,74,.3);padding:8px;text-align:center}
+.stat b{display:block;font-size:28px;color:var(--rubric)}
+.bar{height:7px;background:var(--rubric);opacity:.75}
+.hours{display:flex;align-items:flex-end;gap:2px;height:80px;border-bottom:1px solid rgba(107,91,74,.4)}
+.hours div{flex:1;background:var(--rubric);opacity:.7;min-height:1px}
+.hlab{display:flex;justify-content:space-between;color:var(--soft);font-size:13px}
 .tag{background:var(--paper2);padding:10px;margin:6px 0 10px 76px}
 code{font-size:14px}
 .mic{text-align:center;margin:18px auto;max-width:520px}
@@ -44,6 +51,7 @@ code{font-size:14px}
 <nav>
   <button data-tab="plate" class="on">Rycina</button>
   <button data-tab="journal">Dziennik</button>
+<button data-tab="stats">Statystyki</button>
   <button data-tab="settings">Ustawienia</button>
 </nav>
 <main>
@@ -63,7 +71,8 @@ code{font-size:14px}
     <div id="dogs"></div>
     <div id="entries"></div>
   </section>
-  <section id="settings" hidden></section>
+  <section id="stats" hidden></section>
+<section id="settings" hidden></section>
 </main>
 <script>
 const $ = s => document.querySelector(s);
@@ -77,6 +86,7 @@ function show(tab) {
   document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x.dataset.tab === tab));
   document.querySelectorAll('main section').forEach(s => s.hidden = s.id !== tab);
   if (tab === 'settings') renderSettings();
+  if (tab === 'stats') renderStats();
   history.replaceState(null, '', '#' + tab);
 }
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => show(b.dataset.tab));
@@ -106,6 +116,9 @@ function art(kind, key, subject, extra = '') {
   return `<img class="thumb" loading="lazy" src="api/art?kind=${kind}&key=${encodeURIComponent(key)}&subject=${encodeURIComponent(subject)}${extra}${cached}" onerror="const d=document.createElement('div');d.className='thumb empty';this.replaceWith(d)">`;
 }
 
+// Recordings of what was detected (kept 14 days on the add-on's disk).
+const play = clip => clip ? `<button class="act" title="Odsłuchaj" onclick="new Audio('api/clips/${clip}').play()">▶</button>` : '';
+
 function renderJournal() {
   if (!journal) return;
   const f = [['all', 'wszystko'], ['birds', 'ptaki'], ['dogs', 'psy'], ['planes', 'samoloty'], ['sounds', 'dźwięki']];
@@ -114,13 +127,13 @@ function renderJournal() {
   const dogs = Object.fromEntries(journal.dogs.map(d => [d.id, d]));
   const rows = [];
   if (filter === 'all' || filter === 'birds') journal.birds.forEach(b => rows.push({at: b.lastAt, html:
-    `<div class="row">${art('BIRD', b.sci, b.sci)}<div class="t">${esc(b.name.charAt(0).toUpperCase() + b.name.slice(1))}<div class="d">${day(b.lastAt)} ${hhmm(b.lastAt)} · ${esc(b.sci)} · ${Math.round(b.conf * 100)}%${b.count > 1 ? ' · ' + b.count + '×' : ''}</div></div></div>`}));
+    `<div class="row">${art('BIRD', b.sci, b.sci)}<div class="t">${esc(b.name.charAt(0).toUpperCase() + b.name.slice(1))}<div class="d">${day(b.lastAt)} ${hhmm(b.lastAt)} · ${esc(b.sci)} · ${Math.round(b.conf * 100)}%${b.count > 1 ? ' · ' + b.count + '×' : ''}</div></div>${play(b.clip)}</div>`}));
   if (filter === 'all' || filter === 'dogs') journal.barks.forEach(b => {
     const d = dogs[b.dogId];
     const breed = d ? [d.breed, d.breedEn] : mongrel(b.size);
     rows.push({at: b.lastAt, html:
       `<div class="row">${art('DOG', breed[0], breed[1])}<div class="t">${d ? esc(d.name + ' (' + d.breed + ')') : 'Szczekanie: nieznany pies' + (b.size !== '?' ? ', raczej ' + b.size : '')}<div class="d">${day(b.lastAt)} ${hhmm(b.lastAt)} · ${b.count}× · pewność ${Math.round(b.score * 100)}%${b.pitchHz > 0 ? ' · ok. ' + Math.round(b.pitchHz) + ' Hz' : ''}</div></div>` +
-      (b.clip ? `<button class="act" onclick="new Audio('api/clips/${b.clip}').play()">▶</button>` : '') +
+      play(b.clip) +
       `<button class="act" onclick="tagForm('${b.id}', this)">${d ? 'Zmień' : 'Kto to?'}</button></div>`});
   });
   if (filter === 'all' || filter === 'planes') journal.planes.filter(p => p.heard).forEach(p => rows.push({at: p.lastAt, html:
@@ -130,7 +143,7 @@ function renderJournal() {
     if (!s || !s.on) return;
     const key = e.variant ? e.key + '-' + e.variant : e.key;
     rows.push({at: e.lastAt, html:
-      `<div class="row">${art('SCENE', key, s.now)}<div class="t">${esc(s.past)}${e.title ? ': ' + esc(e.title) : ''}<div class="d">${day(e.at)} ${hhmm(e.at)}–${hhmm(e.lastAt)}${e.subtitle ? ' · ' + esc(e.subtitle) : ''}</div></div></div>`});
+      `<div class="row">${art('SCENE', key, s.now)}<div class="t">${esc(s.past)}${e.title ? ': ' + esc(e.title) : ''}<div class="d">${day(e.at)} ${hhmm(e.at)}–${hhmm(e.lastAt)}${e.subtitle ? ' · ' + esc(e.subtitle) : ''}</div></div>${play(e.clip)}</div>`});
   });
   rows.sort((a, b) => b.at - a.at);
   $('#entries').innerHTML = rows.slice(0, 400).map(r => r.html).join('') || '<p class="soft">Jeszcze pusto.</p>';
@@ -195,10 +208,37 @@ async function soundSwitch(key, on) {
 (async () => {
   breeds = await api('api/breeds');
   (await api('api/sounds')).forEach(s => sounds[s.key] = s);
-  show(['plate', 'journal', 'settings'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'plate');
+  show(['plate', 'journal', 'stats', 'settings'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'plate');
   tick();
   setInterval(tick, 3000);
 })();
+
+// Statystyki: the same numbers as the public page and the app (api/stats).
+async function renderStats() {
+  const s = await api('api/stats');
+  const stat = (v, l) => `<div class="stat"><b>${v}</b>${l}</div>`;
+  const pct = p => Math.round(p * 100) + '%';
+  const conf = c => c != null ? `<div class="d">śr. pewność BirdNET ${pct(c)}</div>` : '';
+  const bird = (sci, name) => `${art('BIRD', sci, sci)}<div class="t">${esc(name.charAt(0).toUpperCase() + name.slice(1))}`;
+  const max = Math.max(1, ...s.birds.top.map(t => t.count)), hm = Math.max(1, ...s.birds.hours);
+  $('#stats').innerHTML = `
+    <h2>Ptaki</h2><div class="stats">${stat(s.birds.today, 'gatunków dziś')}${stat(s.birds.week, 'gatunków w 7 dni')}${stat(s.birds.month, 'gatunków w 30 dni')}</div>
+    <h2>Szansa usłyszenia teraz (${s.hour}:00–${s.hour + 1}:00)</h2>
+    <p class="soft">Na ilu z ${s.daysObserved} ostatnich dni nasłuchu dany ptak odezwał się o tej godzinie.</p>
+    ${s.birds.chanceNow.map(c => `<div class="row">${bird(c.sci, c.name)}${conf(c.conf)}<div class="bar" style="width:${Math.max(3, c.now * 100)}%"></div></div><b>${pct(c.now)}</b></div>`).join('') || '<p class="soft">O tej godzinie jeszcze nic nie było słychać.</p>'}
+    <h2>Szansa usłyszenia w ciągu dnia</h2>
+    ${s.birds.chanceDay.map(c => `<div class="row">${bird(c.sci, c.name)}<div class="d">najczęściej ok. ${c.bestHour}:00${c.conf != null ? ' · śr. pewność BirdNET ' + pct(c.conf) : ''}</div><div class="bar" style="width:${Math.max(3, c.day * 100)}%"></div></div><b>${pct(c.day)}</b></div>`).join('') || '<p class="soft">Za mało danych.</p>'}
+    <h2>Najczęściej słyszane (7 dni)</h2>
+    ${s.birds.top.map(t => `<div class="row">${bird(t.sci, t.name)}<div class="bar" style="width:${Math.max(3, 100 * t.count / max)}%"></div></div><span class="soft">${t.count}×</span></div>`).join('')}
+    <h2>Średnia pewność BirdNET (30 dni)</h2>
+    <p class="soft">Jak bardzo model był pewny, że to ten gatunek, średnio ze wszystkich wykryć. Niska średnia przy rzadkim gatunku to znak, że mogła to być pomyłka.</p>
+    ${(s.birds.confidence || []).map(c => `<div class="row">${bird(c.sci, c.name)}<div class="d">${c.count} wykryć</div><div class="bar" style="width:${Math.max(3, c.conf * 100)}%"></div></div><b>${pct(c.conf)}</b></div>`).join('') || '<p class="soft">Za mało danych.</p>'}
+    <h2>Ptaki według godziny (7 dni)</h2>
+    <div class="hours">${s.birds.hours.map((v, h) => `<div title="${h}:00 · ${v}×" style="height:${100 * v / hm}%"></div>`).join('')}</div>
+    <div class="hlab"><span>0:00</span><span>6:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div>
+    <h2>Samoloty</h2><div class="stats">${stat(s.planes.today, 'usłyszanych dziś')}${stat(s.planes.week, 'w 7 dni')}${stat(s.planes.airlinesToday, 'linii lotniczych dziś')}</div>
+    <h2>Dźwięki okolicy</h2><div class="stats">${stat(s.sounds.kindsToday, 'rodzajów dziś')}${stat(s.sounds.trainsToday, 'pociągów dziś')}${stat(s.sounds.week, 'zdarzeń w 7 dni')}</div>`;
+}
 </script>
 </body>
 </html>

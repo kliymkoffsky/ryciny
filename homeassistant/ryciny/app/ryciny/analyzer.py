@@ -13,6 +13,7 @@ from .ml import BirdNet, Yamnet
 from .store import Store
 
 AIRCRAFT_THRESHOLD = 0.25
+NO_AUDIO = {"talking", "children"}  # only the fact is kept, never a recording of people
 PLANE_MASK_KM = 3.0  # GDN is 2 km away: jets on approach rumble like thunder, ships and wind
 
 
@@ -82,11 +83,12 @@ class Analyzer:
                 continue
             if sound.get("weather") == "thunder" and self.weather and self.weather.thunder() is False:
                 continue
+            clip = None if sound["key"] in NO_AUDIO else (lambda: dsp.wav_bytes(window, 48_000))
             train = self.rails.match(at) if sound["key"] == "train" else None
             if train:
-                self.store.add_sound(sound["key"], at, score, *self.rails.details(train))
+                self.store.add_sound(sound["key"], at, score, *self.rails.details(train), clip=clip)
             else:
-                self.store.add_sound(sound["key"], at, score)
+                self.store.add_sound(sound["key"], at, score, clip=clip)
         if max(dog_scores) >= self.cfg.bark_threshold:
             self._bark(audio16, frames, dog_scores, at)
 
@@ -96,7 +98,7 @@ class Analyzer:
         for i in np.nonzero(conf >= self.cfg.bird_threshold)[0]:
             label = self.birdnet.labels[i]
             if label.bird and (mask is None or mask[i]):
-                self.store.add_bird(label.sci, label.name, float(conf[i]), at)
+                self.store.add_bird(label.sci, label.name, float(conf[i]), at, clip=lambda: dsp.wav_bytes(window, 48_000))
 
     def _bark(self, audio16, frames, dog_scores, at: int) -> None:
         barking = [i for i, s in enumerate(dog_scores) if s >= self.cfg.bark_threshold * 0.7] or [int(np.argmax(dog_scores))]

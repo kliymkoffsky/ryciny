@@ -131,6 +131,7 @@ a{color:var(--rubric)}
   <div id="birdstats">
   <h3 style="font-weight:400">Najczęściej słyszane ptaki (7 dni)</h3>
   <ul class="top" id="top"></ul>
+  <div id="chance"></div>
   <h3 style="font-weight:400">Ptaki według godziny (7 dni)</h3>
   <div class="hours" id="hours"></div>
   <div class="hlab"><span>0:00</span><span>6:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div>
@@ -243,6 +244,19 @@ function render() {
     '<div class="bar" style="width:' + Math.max(4, 100 * t.n / max) + '%"></div></span><span class="soft">' + t.n + '×</span></li>').join('') ||
     '<li class="soft">Jeszcze brak.</li>';
 
+  // Chance and BirdNET confidence come from the add-on's history (longer than this page's 30-day journal).
+  const st = s.stats, pct = p => Math.round(p * 100) + '%';
+  const chanceRow = (c, v, note) => '<li>' + art('BIRD', c.sci) + '<span style="flex:1">' + wikiLink(c.sci, esc(c.name)) +
+    (note ? '<div class="d">' + note + '</div>' : '') + '<div class="bar" style="width:' + Math.max(4, v * 100) + '%"></div></span><span class="soft">' + pct(v) + '</span></li>';
+  const confNote = c => c != null ? 'śr. pewność BirdNET ' + pct(c) : '';
+  $('#chance').innerHTML = !st ? '' :
+    '<h3 style="font-weight:400">Szansa usłyszenia teraz (' + st.hour + ':00–' + (st.hour + 1) + ':00)</h3>' +
+    '<p class="soft">Na ilu z ' + st.daysObserved + ' ostatnich dni nasłuchu ptak odezwał się o tej godzinie.</p>' +
+    '<ul class="top">' + (st.birds.chanceNow.map(c => chanceRow(c, c.now, confNote(c.conf))).join('') || '<li class="soft">O tej godzinie jeszcze nic.</li>') + '</ul>' +
+    '<h3 style="font-weight:400">Szansa usłyszenia w ciągu dnia</h3><ul class="top">' +
+    st.birds.chanceDay.slice(0, 16).map(c => chanceRow(c, c.day, 'najczęściej ok. ' + c.bestHour + ':00' + (c.conf != null ? ' · ' + confNote(c.conf) : ''))).join('') + '</ul>' +
+    '<h3 style="font-weight:400">Średnia pewność BirdNET (30 dni)</h3><p class="soft">Jak bardzo model był pewny, że to ten gatunek, średnio ze wszystkich wykryć.</p><ul class="top">' +
+    (st.birds.confidence || []).slice(0, 24).map(c => chanceRow(c, c.conf, c.count + ' wykryć')).join('') + '</ul>';
   const hours = Array(24).fill(0);
   b7.forEach(b => hours[new Date(b.lastAt).getHours()] += b.count);
   const hm = Math.max(1, ...hours);

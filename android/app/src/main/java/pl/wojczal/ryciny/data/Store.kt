@@ -22,6 +22,8 @@ data class BirdHit(
     val at: Long,
     val lastAt: Long = at,
     val count: Int = 1,
+    /** The add-on's recording of the best moment (kept 14 days there); null on the phone alone. */
+    val clip: String? = null,
 )
 
 /** One barking episode: windows of the same dog less than [Store.BARK_GAP_MS] apart. */
@@ -79,6 +81,8 @@ data class SoundEvent(
     val subtitle: String = "",
     /** Picks a more specific engraving, e.g. the train operator's livery. */
     val variant: String = "",
+    /** The add-on's recording (kept 14 days there); never for talking or children. */
+    val clip: String? = null,
 )
 
 /** Written by 0.2.0, read once to carry its mowing over into [SoundEvent]s. */

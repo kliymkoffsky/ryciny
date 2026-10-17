@@ -77,3 +77,40 @@ def test_public_state_leaves_out_private_things():
     assert [e["key"] for e in s["sounds"]] == ["cricket"]
     text = str(s)
     assert "minDistKm" not in text and "barks" not in s and "dogs" not in s and "lat" not in s
+
+
+def test_clips_kept_for_the_best_detection_and_pruned_after_14_days(tmp_path):
+    from ryciny import store as st
+    s = st.Store(tmp_path)
+    t = st.now_ms()
+    s.add_bird("Pica pica", "sroka", 0.7, t, clip=lambda: b"first")
+    first = s.j["birds"][-1]["clip"]
+    s.add_bird("Pica pica", "sroka", 0.6, t + 1000, clip=lambda: b"worse")
+    assert s.j["birds"][-1]["clip"] == first
+    s.add_bird("Pica pica", "sroka", 0.9, t + 2000, clip=lambda: b"better")
+    best = s.j["birds"][-1]["clip"]
+    assert best != first and not (s.clips / first).exists() and (s.clips / best).read_bytes() == b"better"
+    s.add_sound("talking", t, 0.9)  # no recording of people
+    assert s.j["sounds"][-1].get("clip") is None
+    s.add_sound("train", t, 0.5, clip=lambda: b"train")
+    assert (s.clips / s.j["sounds"][-1]["clip"]).exists()
+    s._prune_clips(t + st.CLIP_KEEP_MS + 5000, force=True)
+    assert not any(s.clips.iterdir()) and s.j["birds"][-1]["clip"] is None
+    assert sum(s.history[st.local(t).strftime("%Y-%m-%d")]["Pica pica"]["h"]) == 3
+
+
+def test_chance_of_hearing_a_bird():
+    from ryciny import stats
+    from ryciny.store import local, now_ms
+    t = now_ms()
+    days = [local(t - i * 86_400_000).strftime("%Y-%m-%d") for i in range(1, 5)]
+    h = [0] * 24
+    h[local(t).hour] = 3
+    history = {days[0]: {"Pica pica": {"n": "sroka", "h": h}}, days[1]: {"Pica pica": {"n": "sroka", "h": [1] + [0] * 23}},
+               days[2]: {"Parus major": {"n": "bogatka", "h": [0] * 23 + [1]}}, days[3]: {}}
+    j = {"planes": [], "sounds": [], "birds": [], "barks": [], "dogs": []}
+    s = stats.compute(j, history, {}, lambda k: True)
+    assert s["daysObserved"] == 4
+    day = {c["sci"]: c["day"] for c in s["birds"]["chanceDay"]}
+    assert day == {"Pica pica": 0.5, "Parus major": 0.25}
+    assert s["birds"]["chanceNow"][0]["sci"] == "Pica pica" and s["birds"]["chanceNow"][0]["now"] == 0.25

@@ -58,7 +58,7 @@ import kotlinx.coroutines.Dispatchers
 import java.io.File
 
 private sealed interface Entry { val at: Long }
-private data class BirdEntry(val name: String, val sci: String, val conf: Float, val count: Int, override val at: Long) : Entry
+private data class BirdEntry(val name: String, val sci: String, val conf: Float, val count: Int, override val at: Long, val clip: String? = null) : Entry
 private data class SoundEntry(val sound: Sound, val event: pl.wojczal.ryciny.data.SoundEvent, val from: Long, override val at: Long) : Entry
 private data class BarkEntry(val bark: Bark, val dog: String?, override val at: Long) : Entry
 private data class PlaneEntry(val pass: PlanePass, val title: String, val detail: String, val heard: Boolean, override val at: Long) : Entry
@@ -72,7 +72,7 @@ fun JournalScreen(g: Graph) {
     var viewing by remember { mutableStateOf<Int?>(null) }
     val dogs = journal.dogs.associateBy { it.id }
     val entries = buildList<Entry> {
-        if (filter in setOf("all", "birds")) journal.birds.forEach { add(BirdEntry(it.name, it.sci, it.conf, it.count, it.lastAt)) }
+        if (filter in setOf("all", "birds")) journal.birds.forEach { add(BirdEntry(it.name, it.sci, it.conf, it.count, it.lastAt, it.clip)) }
         if (filter in setOf("all", "dogs")) journal.barks.forEach { add(BarkEntry(it, it.dogId?.let { id -> dogs[id]?.let { d -> "${d.name} (${d.breed})" } }, it.lastAt)) }
         if (filter in setOf("all", "sounds")) journal.sounds.forEach { e ->
             g.catalog.soundOn(e.key, g.settings.value)?.let { add(SoundEntry(it, e, e.at, e.lastAt)) }
@@ -100,12 +100,12 @@ fun JournalScreen(g: Graph) {
                         if (e.event.title.isBlank()) e.sound.past else "${e.sound.past}: ${e.event.title}",
                         listOf("${hhmm(e.from)}–${hhmm(e.at)}", e.event.subtitle).filter { it.isNotBlank() }.joinToString(" · "),
                         g.catalog.soundArt(e.sound, e.event.variant), fetch = false, onClick = open,
-                    )
+                    ) { PlayButton(g, e.event.clip) }
                     is BirdEntry -> Line(
                         hhmm(e.at), e.name.replaceFirstChar { it.uppercase() },
                         "${e.sci} · ${(e.conf * 100).toInt()}%" + if (e.count > 1) " · ${e.count}×" else "",
                         ArtRequest(Kind.BIRD, e.sci, e.sci), fetch = true, onClick = open,
-                    )
+                    ) { PlayButton(g, e.clip) }
                     // A plane's engraving is paid for, so it is made on a tap, not by scrolling past.
                     is PlaneEntry -> Line(
                         hhmm(e.at), e.title, e.detail + if (e.heard) " · słyszany" else "",
@@ -159,6 +159,12 @@ private fun barkArt(g: Graph, bark: Bark): ArtRequest {
     val known = bark.dogId?.let { id -> g.store.value.dogs.firstOrNull { it.id == id } }
     val breed = known?.let { it.breed to it.breedEn } ?: g.catalog.mongrel(bark.size).let { it.pl to it.en }
     return ArtRequest(Kind.DOG, breed.first, breed.second)
+}
+
+/** Listen to the add-on's recording of this detection (kept 14 days in Home Assistant). */
+@Composable
+private fun PlayButton(g: Graph, clip: String?) {
+    clip?.let { name -> IconButton(onClick = { playClip(g, name) }) { Icon(Icons.Default.PlayArrow, "Odsłuchaj") } }
 }
 
 @Composable
@@ -285,6 +291,7 @@ private fun Page(g: Graph, e: Entry, onTag: (Bark) -> Unit) {
                 Caption(e.name.replaceFirstChar { it.uppercase() }, size = 28, italic = false)
                 Caption(e.sci, size = 19)
                 Caption("${hhmm(e.at)} · pewność ${(e.conf * 100).toInt()}%" + if (e.count > 1) " · ${e.count}×" else "", size = 15, color = InkSoft)
+                PlayButton(g, e.clip)
             }
             is SoundEntry -> {
                 Engraving(g.catalog.soundArt(e.sound, e.event.variant), height = 340.dp, modifier = Modifier.fillMaxWidth())
@@ -292,6 +299,7 @@ private fun Page(g: Graph, e: Entry, onTag: (Bark) -> Unit) {
                 if (e.event.title.isNotBlank()) Caption(e.event.title, size = 20)
                 if (e.event.subtitle.isNotBlank()) Caption(e.event.subtitle, size = 17, italic = false)
                 Caption("${hhmm(e.from)}–${hhmm(e.at)}", size = 15, color = InkSoft)
+                PlayButton(g, e.event.clip)
             }
             is PlaneEntry -> {
                 val p = e.pass
