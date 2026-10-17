@@ -14,7 +14,8 @@ from PIL import Image
 
 from pathlib import Path
 
-from . import __version__, config, dsp, plate, stats
+from . import __version__, config, dsp, plate, stats, tvplate
+from .frame import Frame
 from .store import now_ms
 
 WEB = Path(__file__).parent / "web"
@@ -28,6 +29,8 @@ class App:
     def __init__(self, cfg, assets, store, sky, rails, art, live, listener=None) -> None:
         self.cfg, self.assets, self.store, self.sky, self.rails, self.art, self.live = cfg, assets, store, sky, rails, art, live
         self.listener = listener
+        self.frame = Frame(cfg, cfg.data / "frame.json")
+        self.wiki = tvplate.Wiki(cfg.data)
         self.sounds = {s["key"]: s for s in json.loads(assets.text("sounds.json"))["sounds"]}
         self.fonts = (str(assets.path("garamond.ttf")), str(assets.path("garamond_italic.ttf")))
 
@@ -76,6 +79,49 @@ class App:
                     log.info("art: ordering %s %s", kind, key)
                     self.art.load(kind, key, subject, airline, prompt, wait=True)
             since = started - 60_000
+
+    # --- Samsung The Frame ---------------------------------------------------------------------------
+
+    def tv_plate(self, wait: bool) -> tuple[bytes, str, str]:
+        """The TV picture now: (jpeg, identity, title). A wall should not go blank after a quiet night: a week back."""
+        # Not people or music on the wall: the same sounds the public page leaves out.
+        from .publish import PRIVATE_SOUNDS
+        current = plate.newest(self.store.snapshot(), self.sounds, 7 * 24, lambda k: k not in PRIVATE_SOUNDS and self.sound_on(k))
+        engraving, about = None, ""
+        if current:
+            f = self.art.load(current["kind"], current["key"], current["subject"], current.get("airline", ""),
+                              current.get("prompt", ""), wait=wait)
+            engraving = Image.open(f) if f else None
+            if current["kind"] == "BIRD":
+                about = self.wiki.about(current["key"])
+        st = stats.compute(self.store.snapshot(), self.store.history_snapshot(), self.sounds, self.sound_on)
+        identity = json.dumps([current and current["kind"], current and current["key"], current and current["title"],
+                               current and current["lines"][:2]], ensure_ascii=False)
+        # Engravings beside the birds in the statistics (fetched once each; birds' plates cost nothing).
+        thumbs = {}
+        for b in st["birds"]["top"][:5] + st["birds"]["chanceNow"][:3]:
+            f = self.art.cached("BIRD", b["sci"]) or (self.art.load("BIRD", b["sci"], b["sci"], wait=wait) if wait else None)
+            if f and b["sci"] not in thumbs:
+                try:
+                    thumbs[b["sci"]] = Image.open(f)
+                except OSError:
+                    pass
+        jpeg = tvplate.render(current, engraving, about, st, self.fonts, thumbs)
+        return jpeg, identity, current["title"] if current else "cisza"
+
+    def frame_loop(self) -> None:
+        """Sends the TV plate when what is heard changes (at most every frame_every_min), and every 30 min for the statistics."""
+        while True:
+            time.sleep(60)
+            if not self.cfg.frame_on or not self.cfg.frame_host.strip():
+                continue
+            try:
+                since = time.time() - self.frame.sent_at
+                jpeg, identity, title = self.tv_plate(wait=True)
+                if (identity != self.frame.identity and since >= self.cfg.frame_every_min * 60) or since >= 30 * 60:
+                    self.frame.push(jpeg, identity, title)
+            except Exception:  # noqa: BLE001
+                log.exception("frame loop")
 
     def provider_ready(self) -> bool:
         c = self.cfg
@@ -137,6 +183,12 @@ class App:
                                "has": bool(app.listener and app.listener.last is not None)}
                         return self._json({"version": app.store.version, "live": app.live.json(), "sky": app.sky.state(),
                                            "rails": app.rails.state(), "artError": app.art.error, "mic": mic})
+                    if path == "/api/tv.jpg":
+                        jpeg, _, _ = app.tv_plate(wait=False)
+                        return self._send(200, jpeg, "image/jpeg", {"Cache-Control": "no-store"})
+                    if path == "/api/frame":
+                        return self._json({"status": app.frame.status, "paired": bool(app.frame.state.get("token")),
+                                           "sentAt": int(app.frame.sent_at * 1000), "on": app.cfg.frame_on, "host": app.cfg.frame_host})
                     if path == "/api/stats":
                         return self._json(stats.compute(app.store.snapshot(), app.store.history_snapshot(), app.sounds, app.sound_on,
                                                         best=app.store.best_snapshot()))
@@ -200,6 +252,13 @@ class App:
                         return self._json({"ok": ok}, 200 if ok else 404)
                     if path == "/api/dogs":
                         return self._json({"id": app.store.new_dog(body["name"], body["breed"], body["breedEn"], body.get("id"))})
+                    if path == "/api/frame/push":
+                        jpeg, identity, title = app.tv_plate(wait=True)
+                        app.frame.push(jpeg, identity, title)
+                        return self._json({"status": app.frame.status})
+                    if path == "/api/frame/restore":
+                        app.frame.restore()
+                        return self._json({"status": app.frame.status})
                     if path == "/api/import":
                         app.store.merge_import(body)
                         return self._json({"ok": True})

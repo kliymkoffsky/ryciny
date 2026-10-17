@@ -35,6 +35,9 @@ class Config:
     lookback_hours: int = 12
     public_url: str = ""  # the Worker in public-site/, e.g. https://dzwieki-migowa.<konto>.workers.dev
     public_token: str = ""
+    frame_on: bool = False  # Samsung The Frame: send the TV plate (tvplate.py)
+    frame_host: str = ""
+    frame_every_min: int = 5
     mic_gain_db: float = 0.0  # a quiet microphone: YAMNet misses planes below about -40 dBFS
 
 
@@ -75,6 +78,7 @@ RUNTIME = {
     "bird_threshold": float, "range_filter": bool, "bark_threshold": float, "dog_match": float,
     "radius_km": float, "overhead_max_alt_m": int, "trains": bool, "sounds_off": list, "sounds_on": list,
     "image_provider": str, "lookback_hours": int, "mic_gain_db": float,
+    "frame_on": bool, "frame_host": str, "frame_every_min": int,
 }
 
 

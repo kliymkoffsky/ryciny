@@ -144,3 +144,16 @@ def test_best_recording_of_a_species_is_kept_for_good(tmp_path):
     assert nb["conf"] == 0.99 and not (s.best_dir / b["clip"]).exists() and len(list(s.best_dir.iterdir())) == 1
     s.flush()
     assert st.Store(tmp_path).best["Anser albifrons"]["clip"] == nb["clip"]
+
+
+def test_tv_plate_renders_4k_jpeg():
+    from pathlib import Path
+    from PIL import Image
+    import io
+    from ryciny import tvplate, stats
+    root = Path(__file__).resolve().parents[3] / "android/app/src/main/res/font"
+    fonts = (str(root / "garamond.ttf"), str(root / "garamond_italic.ttf"))
+    st = stats.compute({"planes": [], "sounds": [], "birds": [], "barks": [], "dogs": []}, {}, {}, lambda k: True)
+    jpeg = tvplate.render({"kind": "BIRD", "key": "Pica pica", "title": "Sroka", "lines": ["Pica pica", "ostatnio 12:00"]},
+                          Image.new("RGBA", (300, 200), (0, 0, 0, 255)), "Sroka – ptak z rodziny krukowatych.", st, fonts)
+    assert Image.open(io.BytesIO(jpeg)).size == (3840, 2160)

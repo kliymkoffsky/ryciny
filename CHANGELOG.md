@@ -8,6 +8,16 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.19.0 - 2026-10-17
+
+- Dodatek HA: **Samsung The Frame** prosto z Home Assistant (bez telefonu). Obraz 4K: po lewej rycina tego, co
+  słychać teraz (ptak, samolot albo dźwięk okolicy; bez rozmów, dzieci, muzyki i dzwonka), z opisem (ptaki: dwa
+  zdania z polskiej Wikipedii), po prawej „Dziś za oknem” (gatunki, samoloty, pociągi), najczęstsze ptaki tygodnia
+  i szansa usłyszenia teraz, z miniaturami rycin. Zmienia się przy nowym dźwięku, nie częściej niż co
+  `frame_every_min` minut, i co 30 min dla statystyk; poprzedni obraz jest usuwany z telewizora.
+- Panel: Ustawienia → Samsung The Frame (adres IP, włącznik, Wyślij teraz, Przywróć sztukę, Podgląd `api/tv.jpg`).
+  Protokół jak w aplikacji (art-app WebSocket + D2D), token parowania w `/data/frame.json`.
+
 ## 0.18.0 - 2026-10-17
 
 - Aplikacja na samym telefonie działa jak dodatek HA:

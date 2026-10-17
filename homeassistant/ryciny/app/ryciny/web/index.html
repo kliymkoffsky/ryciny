@@ -85,7 +85,7 @@ let journal = null, sounds = {}, breeds = [], filter = 'all', version = -1;
 function show(tab) {
   document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x.dataset.tab === tab));
   document.querySelectorAll('main section').forEach(s => s.hidden = s.id !== tab);
-  if (tab === 'settings') renderSettings();
+  if (tab === 'settings') renderSettings().then(frameStatus);
   if (tab === 'stats') renderStats();
   history.replaceState(null, '', '#' + tab);
 }
@@ -182,6 +182,12 @@ async function renderSettings() {
   const toggle = (k, label) => `<label class="set">${label}<input type="checkbox" ${s[k] ? 'checked' : ''} onchange="save({${k}: this.checked})"></label>`;
   const pct = v => Math.round(v * 100) + '%';
   $('#settings').innerHTML = `
+    <h2>Samsung The Frame</h2>${toggle('frame_on', 'Wysyłaj rycinę na telewizor')}
+    <label class="set">Adres IP telewizora<input value="${esc(s.frame_host || '')}" placeholder="np. 192.168.1.14" onchange="save({frame_host: this.value.trim()})"></label>
+    ${slider('frame_every_min', 'Nie częściej niż co (min)', 1, 60, 1)}
+    <p class="soft" id="frameStatus"></p>
+    <p><button class="act" onclick="framePush()">Wyślij teraz</button> <button class="act" onclick="frameRestore()">Przywróć sztukę z telewizora</button> <a class="act" href="api/tv.jpg" target="_blank">Podgląd</a></p>
+    <p class="soft">Telewizor pokazuje rycinę tego, co słychać, z opisem (ptaki: z Wikipedii) i kolumnę statystyk. Zmienia ją przy nowym dźwięku, nie częściej niż co tyle minut, i co 30 min odświeża statystyki. Przy pierwszym razie telewizor zapyta pilotem, czy wpuścić „Ryciny”. Jeśli telefon też wysyła na telewizor, wyłącz to w aplikacji.</p>
     <h2>Mikrofon</h2>${slider('mic_gain_db', 'Wzmocnienie (dB)', 0, 36, 1)}<p class="soft">Gdy przelatujący blisko samolot daje na pasku poziomu mniej niż ok. -40 dB, YAMNet go nie rozpozna. Zwykle 12–24 dB; za dużo daje fałszywe dźwięki w ciszy.</p>
     <h2>Ptaki</h2>${slider('bird_threshold', 'Minimalna pewność BirdNET', .3, .95, .01, pct)}${toggle('range_filter', 'Tylko gatunki występujące tu o tej porze roku')}
     <h2>Psy</h2>${slider('bark_threshold', 'Próg szczekania', .1, .9, .01, pct)}${slider('dog_match', 'Dopasowanie do znanego psa', .6, .98, .01, pct)}
@@ -242,6 +248,14 @@ async function renderStats() {
     <h2>Samoloty</h2><div class="stats">${stat(s.planes.today, 'usłyszanych dziś')}${stat(s.planes.week, 'w 7 dni')}${stat(s.planes.airlinesToday, 'linii lotniczych dziś')}</div>
     <h2>Dźwięki okolicy</h2><div class="stats">${stat(s.sounds.kindsToday, 'rodzajów dziś')}${stat(s.sounds.trainsToday, 'pociągów dziś')}${stat(s.sounds.week, 'zdarzeń w 7 dni')}</div>`;
 }
+
+async function frameStatus() {
+  const f = await api('api/frame');
+  const el = $('#frameStatus');
+  if (el) el.textContent = (f.status || (f.paired ? 'połączony z telewizorem' : 'jeszcze nie połączony')) + (f.sentAt ? ' · ostatnio wysłano ' + hhmm(f.sentAt) : '');
+}
+async function framePush() { $('#frameStatus').textContent = 'wysyłam… (jeśli telewizor zapyta, zezwól pilotem)'; await api('api/frame/push', {method: 'POST', body: '{}'}).catch(() => {}); frameStatus(); }
+async function frameRestore() { $('#frameStatus').textContent = 'przywracam…'; await api('api/frame/restore', {method: 'POST', body: '{}'}).catch(() => {}); frameStatus(); }
 </script>
 </body>
 </html>

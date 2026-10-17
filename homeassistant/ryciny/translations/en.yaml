@@ -14,6 +14,14 @@ configuration:
     name: Klucz Google Gemini
   openrouter_key:
     name: Klucz OpenRouter
+  frame_on:
+    name: Samsung The Frame
+    description: Wysyłaj na telewizor rycinę tego, co słychać, z opisem i statystykami (Art Mode, 4K). Można też włączyć w panelu.
+  frame_host:
+    name: Adres IP telewizora
+    description: Np. 192.168.1.14. Przy pierwszym razie telewizor zapyta, czy wpuścić „Ryciny”; zezwól pilotem.
+  frame_every_min:
+    name: Nie częściej niż co (min)
   public_url:
     name: Strona publiczna (adres Workera)
     description: Opcjonalnie. Co 3 minuty wysyła ptaki, usłyszane samoloty i dźwięki okolicy (bez audio, psów, mowy i lokalizacji) do Workera z public-site/.

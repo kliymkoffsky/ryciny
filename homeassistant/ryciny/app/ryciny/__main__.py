@@ -44,6 +44,7 @@ def main() -> None:
     app = App(cfg, assets, store, sky, rails, art, live, listener)
     threading.Thread(target=app.serve, daemon=True, name="api").start()
     threading.Thread(target=app.prefetch, daemon=True, name="art").start()
+    threading.Thread(target=app.frame_loop, daemon=True, name="frame").start()
     threading.Thread(target=Publisher(cfg, app).run, daemon=True, name="publish").start()
     sky.start()
     rails.start()
