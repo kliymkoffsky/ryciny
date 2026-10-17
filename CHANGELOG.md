@@ -8,6 +8,12 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.20.0 - 2026-10-17
+
+- The Frame: tło jak stary papier na delikatnym płótnie (nierówny, pożółkły odcień, splot nitek, włókna, rzadkie
+  rdzawe plamki, ciemniejsze brzegi), generowane raz w kodzie. Ryciny i miniatury są „drukowane” na papierze
+  (mnożenie, z papierem tablicy rozjaśnionym do bieli), bez jasnej obwódki.
+
 ## 0.19.1 - 2026-10-17
 
 - The Frame: kolumna statystyk z większym odstępem od kreski, tytuły sekcji podkreślone i wyrównane do tej samej
