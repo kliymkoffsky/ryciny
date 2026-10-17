@@ -136,6 +136,7 @@ h2{font-weight:400;font-size:24px;border-bottom:1px solid var(--rule);margin:34p
 .pager{margin-top:14px;justify-content:center;align-items:center}
 .filters.top{position:sticky;top:0;z-index:2;background:var(--paper);justify-content:center;padding:8px 0;margin:0 0 12px;border-bottom:1px solid var(--rule)}
 .play{font:inherit;font-size:16px;background:none;border:1px solid var(--rule);color:var(--rubric);border-radius:50%;width:34px;height:34px;cursor:pointer;flex:none;margin-left:auto}
+.top li .play{margin-left:8px;width:30px;height:30px;font-size:13px}
 .d .play{width:26px;height:26px;font-size:12px;margin-left:4px;vertical-align:middle}
 .play.on{background:var(--rubric);color:var(--paper)}
 .row{display:flex;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule)}
@@ -282,8 +283,11 @@ function render() {
   const bySp = {};
   b7.forEach(b => { const k = b.sci; (bySp[k] ||= {name: b.name, sci: k, n: 0}).n += b.count; });
   const top = Object.values(bySp).sort((a, b) => b.n - a.n).slice(0, 12), max = top[0]?.n || 1;
+  // A recording for each: the species' best one if it may be public, else its newest public one.
+  const bestOf = (s.stats && s.stats.birds.best) || {};
+  const sound = sci => (bestOf[sci] && bestOf[sci].clip) || (s.birds.filter(b => b.sci === sci && b.audio).sort((a, b) => b.lastAt - a.lastAt)[0] || {}).audio;
   $('#top').innerHTML = top.map(t => '<li>' + art('BIRD', t.sci) + '<span style="flex:1">' + wikiLink(t.sci, esc(t.name)) +
-    '<div class="bar" style="width:' + Math.max(4, 100 * t.n / max) + '%"></div></span><span class="soft">' + t.n + '×</span></li>').join('') ||
+    '<div class="bar" style="width:' + Math.max(4, 100 * t.n / max) + '%"></div></span><span class="soft">' + t.n + '×</span>' + playBtn(sound(t.sci)) + '</li>').join('') ||
     '<li class="soft">Jeszcze brak.</li>';
 
   // Chance and BirdNET confidence come from the add-on's history (longer than this page's 30-day journal).
