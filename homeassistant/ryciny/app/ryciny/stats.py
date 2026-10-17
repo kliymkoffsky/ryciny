@@ -12,7 +12,7 @@ CHANCE_DAYS = 30
 TOP = 12
 
 
-def compute(journal: dict, history: dict, sounds: dict, sound_on, private: set[str] = frozenset()) -> dict:
+def compute(journal: dict, history: dict, sounds: dict, sound_on, private: set[str] = frozenset(), best: dict | None = None) -> dict:
     now = now_ms()
     t = local(now)
     today = t.strftime("%Y-%m-%d")
@@ -48,12 +48,14 @@ def compute(journal: dict, history: dict, sounds: dict, sound_on, private: set[s
     for s in species(past):
         heard = [history[d][s]["h"] for d in past if s in history[d]]
         by_hour = [round(sum(1 for h in heard if h[i] > 0) / n, 3) for i in range(24)]
-        best = max(range(24), key=lambda i: by_hour[i])
+        best_hour = max(range(24), key=lambda i: by_hour[i])
         chance.append({"sci": s, "name": names.get(s, s), "day": round(len(heard) / n, 3), "hours": by_hour,
-                       "now": by_hour[t.hour], "bestHour": best, "conf": conf.get(s)})
+                       "now": by_hour[t.hour], "bestHour": best_hour, "conf": conf.get(s)})
 
     planes = [p for p in journal["planes"] if p.get("heard")]
     shown = [e for e in journal["sounds"] if e["key"] in sounds and e["key"] not in private and sound_on(e["key"])]
+    # The best recording of each species ever (kept for good): conf, when, and the file.
+    best_out = {s: {"conf": b["conf"], "at": b["at"], "clip": b["clip"], "public": b.get("public", False)} for s, b in (best or {}).items()}
     return {
         "updatedAt": now,
         "hour": t.hour,
@@ -68,6 +70,7 @@ def compute(journal: dict, history: dict, sounds: dict, sound_on, private: set[s
             "hours": hours,
             "chanceNow": sorted((c for c in chance if c["now"] > 0), key=lambda c: -c["now"])[:TOP],
             "chanceDay": sorted(chance, key=lambda c: -c["day"])[:30],
+            "best": best_out,
         },
         "planes": {
             "today": sum(1 for p in planes if p["at"] >= day_start),

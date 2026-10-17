@@ -138,7 +138,8 @@ class App:
                         return self._json({"version": app.store.version, "live": app.live.json(), "sky": app.sky.state(),
                                            "rails": app.rails.state(), "artError": app.art.error, "mic": mic})
                     if path == "/api/stats":
-                        return self._json(stats.compute(app.store.snapshot(), app.store.history_snapshot(), app.sounds, app.sound_on))
+                        return self._json(stats.compute(app.store.snapshot(), app.store.history_snapshot(), app.sounds, app.sound_on,
+                                                        best=app.store.best_snapshot()))
                     if path == "/api/mic.wav":
                         last = app.listener.last if app.listener else None
                         if last is None:
@@ -160,6 +161,10 @@ class App:
                         rel = found.relative_to(app.art.root).as_posix()
                         ctype = "image/webp" if found.suffix == ".webp" else "image/png"
                         return self._send(200, found.read_bytes(), ctype, {"X-Ryciny-File": rel, "Cache-Control": "max-age=31536000"})
+                    m = re.fullmatch(r"/api/best/([0-9a-f]{8}\.wav)", path)
+                    if m:
+                        f = app.store.best_dir / m[1]
+                        return self._send(200, f.read_bytes(), "audio/wav") if f.exists() else self._json({"error": "no clip"}, 404)
                     m = re.fullmatch(r"/api/clips/([0-9a-f]{8}\.wav)", path)
                     if m:
                         f = app.store.clips / m[1]

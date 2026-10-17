@@ -29,7 +29,9 @@ export default {
       if (path === "/ingest/clip") {
         const name = url.searchParams.get("name") || "";
         if (!CLIP.test(name)) return new Response("name", { status: 400 });
-        await env.DATA.put(`clip:${name}`, await req.arrayBuffer(), { expirationTtl: CLIP_TTL_S });
+        // A species' best recording (keep=1) stays until a better one replaces it; the old one expires in a year.
+        const ttl = url.searchParams.get("keep") === "1" ? 400 * 86400 : CLIP_TTL_S;
+        await env.DATA.put(`clip:${name}`, await req.arrayBuffer(), { expirationTtl: ttl });
         return Response.json({ ok: true });
       }
       if (path === "/ingest/has") {
@@ -134,6 +136,7 @@ h2{font-weight:400;font-size:24px;border-bottom:1px solid var(--rule);margin:34p
 .pager{margin-top:14px;justify-content:center;align-items:center}
 .filters.top{position:sticky;top:0;z-index:2;background:var(--paper);justify-content:center;padding:8px 0;margin:0 0 12px;border-bottom:1px solid var(--rule)}
 .play{font:inherit;font-size:16px;background:none;border:1px solid var(--rule);color:var(--rubric);border-radius:50%;width:34px;height:34px;cursor:pointer;flex:none;margin-left:auto}
+.d .play{width:26px;height:26px;font-size:12px;margin-left:4px;vertical-align:middle}
 .play.on{background:var(--rubric);color:var(--paper)}
 .row{display:flex;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule)}
 .thumb{width:58px;height:58px;object-fit:contain;flex:none;mix-blend-mode:multiply}
@@ -285,8 +288,10 @@ function render() {
 
   // Chance and BirdNET confidence come from the add-on's history (longer than this page's 30-day journal).
   const st = s.stats, pct = p => Math.round(p * 100) + '%';
+  const best = (st && st.birds.best) || {};
+  const bestNote = sci => best[sci] ? '<div class="d">najlepsze nagranie: ' + pct(best[sci].conf) + ', ' + day(best[sci].at) + ' ' + playBtn(best[sci].clip) + '</div>' : '';
   const chanceRow = (c, v, note) => '<li>' + art('BIRD', c.sci) + '<span style="flex:1">' + wikiLink(c.sci, esc(c.name)) +
-    (note ? '<div class="d">' + note + '</div>' : '') + '<div class="bar" style="width:' + Math.max(4, v * 100) + '%"></div></span><span class="soft">' + pct(v) + '</span></li>';
+    (note ? '<div class="d">' + note + '</div>' : '') + bestNote(c.sci) + '<div class="bar" style="width:' + Math.max(4, v * 100) + '%"></div></span><span class="soft">' + pct(v) + '</span></li>';
   const confNote = c => c != null ? 'śr. pewność BirdNET ' + pct(c) : '';
   $('#chance').innerHTML = !st ? '' :
     '<h3 style="font-weight:400">Szansa usłyszenia teraz (' + st.hour + ':00–' + (st.hour + 1) + ':00)</h3>' +

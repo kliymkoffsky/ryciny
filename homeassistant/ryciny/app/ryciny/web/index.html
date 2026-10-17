@@ -219,7 +219,10 @@ async function renderStats() {
   const stat = (v, l) => `<div class="stat"><b>${v}</b>${l}</div>`;
   const pct = p => Math.round(p * 100) + '%';
   const conf = c => c != null ? `<div class="d">śr. pewność BirdNET ${pct(c)}</div>` : '';
-  const bird = (sci, name) => `${art('BIRD', sci, sci)}<div class="t">${esc(name.charAt(0).toUpperCase() + name.slice(1))}`;
+  // The most confident recording of each species ever (kept for good), with its BirdNET score.
+  const best = s.birds.best || {};
+  const bestLine = sci => best[sci] ? `<div class="d">najlepsze nagranie: ${pct(best[sci].conf)}, ${day(best[sci].at)} <button class="act" title="Odsłuchaj najlepsze nagranie" onclick="new Audio('api/best/${best[sci].clip}').play()">▶</button></div>` : '';
+  const bird = (sci, name) => `${art('BIRD', sci, sci)}<div class="t">${esc(name.charAt(0).toUpperCase() + name.slice(1))}${bestLine(sci)}`;
   const max = Math.max(1, ...s.birds.top.map(t => t.count)), hm = Math.max(1, ...s.birds.hours);
   $('#stats').innerHTML = `
     <h2>Ptaki</h2><div class="stats">${stat(s.birds.today, 'gatunków dziś')}${stat(s.birds.week, 'gatunków w 7 dni')}${stat(s.birds.month, 'gatunków w 30 dni')}</div>

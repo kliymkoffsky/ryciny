@@ -166,8 +166,8 @@ class Remote(
         if (r.code == 200) json.decodeFromString(Stats.serializer(), String(r.body)) else null
     }.getOrNull()
 
-    suspend fun clip(name: String, into: File): File? {
-        val r = Http.exchange("GET", "$base/api/clips/$name")
+    suspend fun clip(name: String, into: File, best: Boolean = false): File? {
+        val r = Http.exchange("GET", "$base/api/${if (best) "best" else "clips"}/$name")
         if (r.code != 200) return null
         into.parentFile?.mkdirs()
         into.writeBytes(r.body)

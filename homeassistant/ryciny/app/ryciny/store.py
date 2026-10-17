@@ -48,10 +48,15 @@ class Store:
         self.history_file = data / "history.json"
         self.clips = data / "clips"
         self.clips.mkdir(parents=True, exist_ok=True)
+        # The most confident recording of each species ever: never pruned, replaced only by a better one.
+        self.best_dir = data / "best"
+        self.best_dir.mkdir(parents=True, exist_ok=True)
+        self.best_file = data / "best.json"
         self.lock = threading.RLock()
         self.version = 0
         self.j = self._load()
         self.history = self._load_history()
+        self.best = self._load_best()
         self._pruned = 0.0
         self._dirty = False
         threading.Thread(target=self._saver, daemon=True).start()
@@ -88,6 +93,7 @@ class Store:
                 self._keep_clip(last, clip, public)
                 birds.append(last)
             self._count_bird(sci, name, at, conf=conf)
+            self._keep_best(sci, name, conf, at, clip, public)
             self.j["birds"] = [b for b in birds if at - b["lastAt"] < KEEP_MS]
             self._prune_clips(at)
             self._changed()
@@ -125,6 +131,44 @@ class Store:
         for f in self.clips.iterdir():
             if f.name not in used and (f.suffix == ".wav" or now - f.stat().st_mtime * 1000 > CLIP_KEEP_MS):
                 f.unlink(missing_ok=True)
+
+    def _keep_best(self, sci: str, name: str, conf: float, at: int, clip: Clip, public: bool) -> None:
+        best = self.best.get(sci)
+        if clip is None or (best and conf <= best["conf"]):
+            return
+        try:
+            data = clip()
+        except Exception:  # noqa: BLE001
+            return
+        file = f"{uuid.uuid4().hex[:8]}.wav"
+        (self.best_dir / file).write_bytes(data)
+        if best:
+            (self.best_dir / best["clip"]).unlink(missing_ok=True)
+        self.best[sci] = {"sci": sci, "name": name, "conf": round(conf, 4), "at": at, "clip": file, "public": public}
+        self._best_dirty = True
+
+    def best_snapshot(self) -> dict:
+        with self.lock:
+            return json.loads(json.dumps(self.best))
+
+    def _load_best(self) -> dict:
+        self._best_dirty = False
+        try:
+            return json.loads(self.best_file.read_text())
+        except (OSError, ValueError):
+            pass
+        # First start: the best of the recordings the journal still has.
+        best: dict = {}
+        for b in sorted((b for b in self.j["birds"] if b.get("clip") and (self.clips / b["clip"]).exists()), key=lambda b: b["conf"]):
+            old = best.get(b["sci"])
+            file = f"{uuid.uuid4().hex[:8]}.wav"
+            (self.best_dir / file).write_bytes((self.clips / b["clip"]).read_bytes())
+            if old:
+                (self.best_dir / old["clip"]).unlink(missing_ok=True)
+            best[b["sci"]] = {"sci": b["sci"], "name": b["name"], "conf": round(b["conf"], 4), "at": b["lastAt"], "clip": file,
+                              "public": bool(b.get("clipPublic"))}
+        self._best_dirty = bool(best)
+        return best
 
     # --- history: birds per day and hour, kept HISTORY_DAYS ----------------------------------------
 
@@ -290,7 +334,11 @@ class Store:
             self._dirty = False
             cutoff = local(now_ms() - HISTORY_DAYS * 86_400_000).strftime("%Y-%m-%d")
             self.history = {d: v for d, v in self.history.items() if d >= cutoff}
-            for path, data in ((self.file, self.j), (self.history_file, self.history)):
+            files = [(self.file, self.j), (self.history_file, self.history)]
+            if self._best_dirty:
+                files.append((self.best_file, self.best))
+                self._best_dirty = False
+            for path, data in files:
                 tmp = path.with_suffix(".json.tmp")
                 tmp.write_text(json.dumps(data, ensure_ascii=False))
                 tmp.replace(path)

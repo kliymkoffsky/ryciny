@@ -29,7 +29,12 @@ data class BirdStats(
     val chanceDay: List<Chance> = emptyList(),
     /** Average BirdNET confidence per species over 30 days, highest first. */
     val confidence: List<Confidence> = emptyList(),
+    /** The most confident recording of each species ever, kept for good by the add-on (sci -> recording). */
+    val best: Map<String, BestClip> = emptyMap(),
 )
+
+@Serializable
+data class BestClip(val conf: Float, val at: Long, val clip: String)
 
 @Serializable
 data class Confidence(val sci: String, val name: String, val conf: Float, val count: Int)

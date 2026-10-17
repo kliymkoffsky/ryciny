@@ -28,6 +28,17 @@ import kotlinx.coroutines.delay
 import pl.wojczal.ryciny.Graph
 import pl.wojczal.ryciny.art.ArtRequest
 import pl.wojczal.ryciny.art.Kind
+import android.media.MediaPlayer
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import pl.wojczal.ryciny.data.BestClip
 import pl.wojczal.ryciny.data.Stats
 import pl.wojczal.ryciny.data.localStats
 
@@ -59,17 +70,17 @@ fun StatsScreen(g: Graph) {
             Caption("Na ilu z ${s.daysObserved} ostatnich dni nasłuchu ptak odezwał się o tej godzinie.", size = 14, color = InkSoft)
             if (b.chanceNow.isEmpty()) Caption("O tej godzinie jeszcze nic nie było słychać.", size = 15, color = InkSoft)
         }
-        items(b.chanceNow) { c -> BirdBar(c.sci, c.name, c.now, "${(c.now * 100).toInt()}%", confNote(c.conf)) }
+        items(b.chanceNow) { c -> BirdBar(c.sci, c.name, c.now, "${(c.now * 100).toInt()}%", confNote(c.conf), g, b.best[c.sci]) }
         item { Heading("Szansa usłyszenia w ciągu dnia") }
-        items(b.chanceDay) { c -> BirdBar(c.sci, c.name, c.day, "${(c.day * 100).toInt()}%", "najczęściej ok. ${c.bestHour}:00" + c.conf.let { if (it != null) " · " + confNote(it) else "" }) }
+        items(b.chanceDay) { c -> BirdBar(c.sci, c.name, c.day, "${(c.day * 100).toInt()}%", "najczęściej ok. ${c.bestHour}:00" + c.conf.let { if (it != null) " · " + confNote(it) else "" }, g, b.best[c.sci]) }
         item { Heading("Najczęściej słyszane (7 dni)") }
         val max = (b.top.maxOfOrNull { it.count } ?: 1).coerceAtLeast(1)
-        items(b.top) { t -> BirdBar(t.sci, t.name, t.count.toFloat() / max, "${t.count}×", confNote(t.conf)) }
+        items(b.top) { t -> BirdBar(t.sci, t.name, t.count.toFloat() / max, "${t.count}×", confNote(t.conf), g, b.best[t.sci]) }
         item {
             Heading("Średnia pewność BirdNET (30 dni)")
             Caption("Jak bardzo model był pewny, że to ten gatunek, średnio ze wszystkich wykryć. Niska średnia przy rzadkim gatunku to znak, że mogła to być pomyłka.", size = 14, color = InkSoft)
         }
-        items(b.confidence) { c -> BirdBar(c.sci, c.name, c.conf, "${(c.conf * 100).toInt()}%", "${c.count} wykryć") }
+        items(b.confidence) { c -> BirdBar(c.sci, c.name, c.conf, "${(c.conf * 100).toInt()}%", "${c.count} wykryć", g, b.best[c.sci]) }
         item {
             Heading("Ptaki według godziny (7 dni)")
             Hours(b.hours)
@@ -81,6 +92,25 @@ fun StatsScreen(g: Graph) {
         }
     }
 }
+
+private var player: MediaPlayer? = null
+
+private fun playBest(g: Graph, name: String) {
+    g.scope.launch {
+        val f = g.remote.clip(name, File(g.context.cacheDir, "best/$name"), best = true) ?: return@launch
+        withContext(Dispatchers.Main) {
+            player?.release()
+            player = MediaPlayer().apply {
+                setDataSource(f.path)
+                setOnCompletionListener { it.release(); if (player === it) player = null }
+                prepare()
+                start()
+            }
+        }
+    }
+}
+
+private fun day(t: Long): String = java.text.SimpleDateFormat("d MMM", PL).format(java.util.Date(t))
 
 private fun confNote(conf: Float?) = conf?.let { "śr. pewność BirdNET ${(it * 100).toInt()}%" } ?: ""
 
@@ -107,12 +137,19 @@ private fun Numbers(vararg items: Pair<Int, String>) {
 }
 
 @Composable
-private fun BirdBar(sci: String, name: String, share: Float, value: String, note: String = "") {
+private fun BirdBar(sci: String, name: String, share: Float, value: String, note: String = "", g: Graph? = null, best: BestClip? = null) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Thumb(ArtRequest(Kind.BIRD, sci, sci), fetch = true, Modifier.padding(end = 10.dp), size = 44.dp)
         Column(Modifier.weight(1f)) {
             Text(name.replaceFirstChar { it.uppercase() })
             if (note.isNotBlank()) Text(note, style = Italic.copy(fontSize = 13.sp), color = InkSoft)
+            if (best != null && g != null) {
+                // The add-on keeps each species' most confident recording for good.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("najlepsze nagranie: ${(best.conf * 100).toInt()}%, ${day(best.at)}", style = Italic.copy(fontSize = 13.sp), color = InkSoft)
+                    IconButton(onClick = { playBest(g, best.clip) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.PlayArrow, "Odsłuchaj najlepsze nagranie") }
+                }
+            }
             Box(Modifier.fillMaxWidth(share.coerceIn(0.03f, 1f)).height(6.dp).background(Rubric.copy(alpha = 0.75f)))
         }
         Text(value, modifier = Modifier.padding(start = 10.dp))

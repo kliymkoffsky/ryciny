@@ -127,3 +127,20 @@ def test_public_bird_audio_one_per_species_and_day_and_only_without_people():
     s = public_state(j, {}, lambda k: True)
     assert [b.get("audio") for b in s["birds"]] == [None, None, "c.wav"]
     assert "clip" not in str(s).replace("'audio'", "")
+
+
+def test_best_recording_of_a_species_is_kept_for_good(tmp_path):
+    from ryciny import store as st
+    s = st.Store(tmp_path)
+    t = st.now_ms()
+    s.add_bird("Anser albifrons", "gęś białoczelna", 0.97, t, clip=lambda: b"best", public=True)
+    s.add_bird("Anser albifrons", "gęś białoczelna", 0.80, t + 120_000, clip=lambda: b"worse")
+    b = s.best["Anser albifrons"]
+    assert b["conf"] == 0.97 and (s.best_dir / b["clip"]).read_bytes() == b"best" and b["public"]
+    s._prune_clips(t + st.CLIP_KEEP_MS + 200_000, force=True)
+    assert not any(s.clips.iterdir()) and (s.best_dir / b["clip"]).exists()
+    s.add_bird("Anser albifrons", "gęś białoczelna", 0.99, t + 300_000, clip=lambda: b"better")
+    nb = s.best["Anser albifrons"]
+    assert nb["conf"] == 0.99 and not (s.best_dir / b["clip"]).exists() and len(list(s.best_dir.iterdir())) == 1
+    s.flush()
+    assert st.Store(tmp_path).best["Anser albifrons"]["clip"] == nb["clip"]

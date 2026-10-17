@@ -8,6 +8,14 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.17.0 - 2026-10-17
+
+- **Najlepsze nagranie każdego gatunku**, zachowywane na stałe: dodatek trzyma jedno nagranie na gatunek, to z
+  najwyższą pewnością BirdNET w całej historii (`data/best/`, `best.json`), i podmienia je tylko na lepsze. Nie
+  podlega kasowaniu po 14 dniach. Na start brane z nagrań, które dodatek już miał.
+- W statystykach panelu HA, aplikacji i strony publicznej przy każdym ptaku: „najlepsze nagranie: 99%, data” z ▶.
+  Na stronę publiczną trafia tylko, gdy YAMNet nie usłyszał w nim ludzi ani muzyki.
+
 ## 0.16.0 - 2026-10-17
 
 - Strona publiczna: **nagrania ptaków** (▶ przy ryciny i w Dzienniku). Jedno na gatunek dziennie, to z najwyższą

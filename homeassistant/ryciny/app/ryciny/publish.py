@@ -82,9 +82,14 @@ class Publisher:
                     self.sent = set(json.loads(self._put("/ingest/has", b"", "text/plain")))
                 journal = self.app.store.snapshot()
                 state = public_state(journal, self.app.sounds, self.app.sound_on)
-                state["stats"] = stats.compute(journal, self.app.store.history_snapshot(), self.app.sounds, self.app.sound_on, PRIVATE_SOUNDS)
+                st = stats.compute(journal, self.app.store.history_snapshot(), self.app.sounds, self.app.sound_on, PRIVATE_SOUNDS,
+                                   best=self.app.store.best_snapshot())
+                # Only best recordings without people or music go out; they stay (no 14-day expiry).
+                st["birds"]["best"] = {s: {k: v for k, v in b.items() if k != "public"} for s, b in st["birds"]["best"].items() if b["public"]}
+                state["stats"] = st
                 self._art(state)
                 self._clips(state)
+                self._best(state)
                 self._put("/ingest/state", json.dumps(state, ensure_ascii=False).encode(), "application/json")
                 version, self.error = self.app.store.version, None
             except Exception as e:  # noqa: BLE001 - try again next round
@@ -103,6 +108,20 @@ class Publisher:
             self._put("/ingest/clip?" + urllib.parse.urlencode({"name": name}), f.read_bytes(), "audio/wav")
             self.sent.add(f"clip:{name}")
             log.info("publish: clip %s %s", b["sci"], name)
+
+    def _best(self, state: dict) -> None:
+        best = state["stats"]["birds"]["best"]
+        for sci, b in list(best.items()):
+            name = b["clip"]
+            if f"clip:{name}" in self.sent:
+                continue
+            f = self.app.store.best_dir / name
+            if not f.exists():
+                best.pop(sci)
+                continue
+            self._put("/ingest/clip?" + urllib.parse.urlencode({"name": name, "keep": "1"}), f.read_bytes(), "audio/wav")
+            self.sent.add(f"clip:{name}")
+            log.info("publish: best clip %s %s", sci, name)
 
     def _art(self, state: dict) -> None:
         wanted = [("BIRD", b["sci"]) for b in state["birds"]] + [("PLANE", p["art"]) for p in state["planes"]] + \
