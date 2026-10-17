@@ -8,6 +8,13 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.20.1 - 2026-10-17
+
+- The Frame: dodatek nie przerywa już oglądania. Przed wysyłką pyta telewizor o Art Mode
+  (`get_artmode_status`); gdy telewizor pokazuje Netflixa, kanał albo coś innego, nic nie wysyła i pyta znów za
+  5 min. Wcześniej `select_image` z `show` przełączał telewizor w Art Mode w trakcie filmu.
+- `GET /api/frame/mode`: sam status Art Mode, bez wysyłania.
+
 ## 0.20.0 - 2026-10-17
 
 - The Frame: tło jak stary papier na delikatnym płótnie (nierówny, pożółkły odcień, splot nitek, włókna, rzadkie

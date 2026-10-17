@@ -113,7 +113,7 @@ class App:
         """Sends the TV plate when what is heard changes (at most every frame_every_min), and every 30 min for the statistics."""
         while True:
             time.sleep(60)
-            if not self.cfg.frame_on or not self.cfg.frame_host.strip():
+            if not self.cfg.frame_on or not self.cfg.frame_host.strip() or time.time() < self.frame.next_try:
                 continue
             try:
                 since = time.time() - self.frame.sent_at
@@ -186,6 +186,11 @@ class App:
                     if path == "/api/tv.jpg":
                         jpeg, _, _ = app.tv_plate(wait=False)
                         return self._send(200, jpeg, "image/jpeg", {"Cache-Control": "no-store"})
+                    if path == "/api/frame/mode":
+                        try:
+                            return self._json({"artMode": app.frame.art_mode()})
+                        except Exception as e:  # noqa: BLE001
+                            return self._json({"error": str(e)}, 502)
                     if path == "/api/frame":
                         return self._json({"status": app.frame.status, "paired": bool(app.frame.state.get("token")),
                                            "sentAt": int(app.frame.sent_at * 1000), "on": app.cfg.frame_on, "host": app.cfg.frame_host})

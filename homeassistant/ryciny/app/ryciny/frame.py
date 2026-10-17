@@ -25,9 +25,15 @@ import websockets
 
 log = logging.getLogger(__name__)
 
+WATCH_WAIT_S = 5 * 60
+
 
 class FrameError(Exception):
     pass
+
+
+class Watching(Exception):
+    """The TV is showing something else (Netflix, a channel): never switch it to Art Mode."""
 
 
 def _tls() -> ssl.SSLContext:
@@ -167,6 +173,7 @@ class Frame:
         self.status = ""
         self.sent_at = 0.0
         self.identity: str | None = None
+        self.next_try = 0.0  # while the TV is used for watching, ask again only every few minutes
 
     def _load(self) -> dict:
         try:
@@ -190,6 +197,11 @@ class Frame:
             self.status = "łączę; jeśli telewizor zapyta, zezwól pilotem na „Ryciny”" if not self.state.get("token") else "wysyłam…"
             try:
                 cid = asyncio.run(self._show(host, jpeg))
+            except Watching:
+                self.next_try = time.time() + WATCH_WAIT_S
+                self.status = f"{dt.datetime.now():%H:%M}: telewizor jest używany do oglądania; rycina poczeka na Art Mode"
+                log.info("frame: TV not in Art Mode, skipped")
+                return
             except FrameError as e:
                 self.status = f"błąd: {e}"
                 log.warning("frame: %s", e)
@@ -206,6 +218,10 @@ class Frame:
 
     async def _show(self, host: str, jpeg: bytes) -> str:
         async with Session(host, self.state.get("token"), self._token) as s:
+            # Only while the TV shows art (or is "off", which on The Frame is Art Mode): never interrupt watching.
+            mode = await s.request("get_artmode_status")
+            if mode.get("value") != "on":
+                raise Watching()
             previous = self.state.get("contentId")
             if "original" not in self.state:
                 self.state["original"] = await s.take_over(previous)
@@ -215,6 +231,14 @@ class Frame:
             if previous and previous != cid:
                 await s.delete(previous)
             return cid
+
+    def art_mode(self) -> str:
+        """The TV's Art Mode status ("on"/"off"), without sending or switching anything."""
+        async def ask() -> str:
+            async with Session(self.cfg.frame_host.strip(), self.state.get("token"), self._token) as s:
+                return str((await s.request("get_artmode_status")).get("value"))
+        with self.lock:
+            return asyncio.run(ask())
 
     def restore(self) -> None:
         """Takes the plate off the TV and puts back the TV's own artwork, slideshow and auto-rotation."""
