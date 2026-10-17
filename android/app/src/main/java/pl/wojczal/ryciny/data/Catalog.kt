@@ -20,6 +20,10 @@ data class Sound(
     val minHits: Int = 1,
     /** Off by default, e.g. sheep in a town where children's voices fake their bleating. */
     val enabled: Boolean = true,
+    /** Not counted while a low plane is within 3 km: near an airport a jet's rumble fakes thunder, ships and wind. */
+    val notNearPlane: Boolean = false,
+    /** "thunder": counted only when the weather has a thunderstorm around. */
+    val weather: String = "",
 )
 
 @Serializable

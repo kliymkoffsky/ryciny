@@ -8,6 +8,14 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.18.0 - 2026-10-17
+
+- Aplikacja na samym telefonie działa jak dodatek HA:
+  - nagrania ptaków i dźwięków przy wykryciu (najlepszy moment zdarzenia, bez rozmów i dzieci), kasowane po 14 dniach;
+    Dziennik telefonu trzyma 14 dni;
+  - najlepsze nagranie każdego gatunku zachowywane na stałe (`best/`, `best.json`), z ▶ w Statystykach;
+  - burza, statek i wiatr nie liczą się przy samolocie w promieniu 3 km, a burza tylko przy burzy w Open-Meteo.
+
 ## 0.17.0 - 2026-10-17
 
 - **Najlepsze nagranie każdego gatunku**, zachowywane na stałe: dodatek trzyma jedno nagranie na gatunek, to z

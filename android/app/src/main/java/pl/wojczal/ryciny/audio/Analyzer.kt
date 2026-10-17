@@ -39,6 +39,14 @@ class Analyzer(
     private val yamnet = Yamnet(context)
     private val audio = context.getSystemService(AudioManager::class.java)
     private val hits = HashMap<String, ArrayDeque<Long>>()
+    private val weather = Weather(place)
+
+    /** A low plane this close was overhead in the last 90 s (sky.py near()). */
+    private fun planeNear(km: Double): Boolean {
+        val sky = sky.flow.value
+        val o = sky.overhead ?: return false
+        return System.currentTimeMillis() - sky.updatedAt < 90_000L && o.distKm <= km && (o.altM ?: 0) <= settings.value.overheadMaxAltM
+    }
 
     fun analyze(window: FloatArray, at: Long) {
         val s = settings.value
@@ -67,11 +75,15 @@ class Analyzer(
                 while (first() < at - 60_000L) removeFirst()
             }
             if (recent.size < sound.minHits) return@forEach
+            if (sound.notNearPlane && planeNear(PLANE_MASK_KM)) return@forEach
+            if (sound.weather == "thunder" && weather.thunder() == false) return@forEach
             val train = if (sound.key == "train") rails.match(at) else null
+            // Never a recording of people: talking and children are kept as a fact only.
+            val record: ((File) -> Unit)? = if (sound.key in NO_AUDIO) null else { f -> Dsp.writeWav(f, window, 48_000) }
             if (train == null) {
-                store.addSound(sound.key, at, score)
+                store.addSound(sound.key, at, score, record = record)
             } else {
-                store.addSound(sound.key, at, score, train.title, "${train.route} · planowo ${train.hhmm}", train.agency)
+                store.addSound(sound.key, at, score, train.title, "${train.route} · planowo ${train.hhmm}", train.agency, record)
             }
         }
         if (dogScores.max() >= s.barkThreshold) bark(audio16, frames, dogScores, at, s.barkThreshold, s.dogMatch)
@@ -83,7 +95,7 @@ class Analyzer(
         val mask = if (rangeFilter) birdNet.rangeMask(here.lat, here.lon) else null
         birdNet.labels.forEachIndexed { i, label ->
             if (conf[i] >= threshold && label.bird && (mask == null || mask[i])) {
-                store.addBird(label.sci, label.name, conf[i], at)
+                store.addBird(label.sci, label.name, conf[i], at) { f -> Dsp.writeWav(f, window, 48_000) }
             }
         }
     }
@@ -127,5 +139,7 @@ class Analyzer(
 
     companion object {
         const val AIRCRAFT_THRESHOLD = 0.25f
+        val NO_AUDIO = setOf("talking", "children")
+        const val PLANE_MASK_KM = 3.0
     }
 }

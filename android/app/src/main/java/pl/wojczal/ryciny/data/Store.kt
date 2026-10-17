@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import java.io.File
 import java.util.UUID
 
@@ -108,6 +110,15 @@ data class Journal(
 class Store(private val dir: File, scope: CoroutineScope) {
     private val file = File(dir, "journal.json")
     val clips = File(dir, "clips").apply { mkdirs() }
+
+    /** Each species' most confident recording ever: kept for good, replaced only by a better one (like the add-on). */
+    val bestDir = File(dir, "best").apply { mkdirs() }
+    private val bestFile = File(dir, "best.json")
+    private val bestState = MutableStateFlow(
+        runCatching { json.decodeFromString(BEST_SERIALIZER, bestFile.readText()) }
+            .getOrDefault(emptyMap()),
+    )
+    val best: StateFlow<Map<String, BestClip>> = bestState
     private val state = MutableStateFlow(load())
     val flow: StateFlow<Journal> = state
     val value: Journal get() = state.value
@@ -140,14 +151,61 @@ class Store(private val dir: File, scope: CoroutineScope) {
         }
     }
 
-    fun addBird(sci: String, name: String, conf: Float, at: Long) = state.update { j ->
-        val last = j.birds.lastOrNull { it.sci == sci }
-        val birds = if (last != null && at - last.lastAt < BIRD_GAP_MS) {
-            j.birds.map { if (it === last) it.copy(lastAt = at, count = it.count + 1, conf = maxOf(it.conf, conf)) else it }
-        } else {
-            j.birds + BirdHit(sci, name, conf, at)
+    /**
+     * [record] writes the 3 s window to a file; it is called only when this detection's recording is kept: a new
+     * event, a better one than the event's recording so far, or the best of the species ever.
+     */
+    fun addBird(sci: String, name: String, conf: Float, at: Long, record: ((File) -> Unit)? = null) {
+        val prev = state.value.birds.lastOrNull { it.sci == sci }?.takeIf { at - it.lastAt < BIRD_GAP_MS }
+        val clip = if (record != null && (prev == null || conf > prev.conf || prev.clip == null)) newClip(record) else null
+        keepBest(sci, conf, at, clip, record)
+        state.update { j ->
+            val last = j.birds.lastOrNull { it.sci == sci }
+            val birds = if (last != null && at - last.lastAt < BIRD_GAP_MS) {
+                j.birds.map { if (it === last) it.copy(lastAt = at, count = it.count + 1, conf = maxOf(it.conf, conf), clip = clip ?: it.clip) else it }
+            } else {
+                j.birds + BirdHit(sci, name, conf, at, clip = clip)
+            }
+            j.copy(birds = birds.filter { at - it.lastAt < KEEP_MS })
         }
-        j.copy(birds = birds.filter { at - it.lastAt < KEEP_MS })
+        pruneClips(at)
+    }
+
+    private fun newClip(record: (File) -> Unit): String? = runCatching {
+        val name = UUID.randomUUID().toString().take(8) + ".wav"
+        record(File(clips, name))
+        name
+    }.getOrNull()
+
+    private fun keepBest(sci: String, conf: Float, at: Long, clip: String?, record: ((File) -> Unit)?) {
+        val old = bestState.value[sci]
+        if (old != null && conf <= old.conf) return
+        val name = UUID.randomUUID().toString().take(8) + ".wav"
+        val file = File(bestDir, name)
+        runCatching { clip?.let { File(clips, it).copyTo(file) } ?: record?.invoke(file) ?: return }.getOrElse { return }
+        old?.let { File(bestDir, it.clip).delete() }
+        bestState.value = bestState.value + (sci to BestClip(conf, at, name))
+        runCatching {
+            bestFile.writeText(json.encodeToString(BEST_SERIALIZER, bestState.value))
+        }
+    }
+
+    private var pruned = 0L
+
+    /** Recordings older than [CLIP_KEEP_MS] or no longer in the journal go; at most every 10 minutes. */
+    private fun pruneClips(now: Long, force: Boolean = false) {
+        if (!force && System.currentTimeMillis() - pruned < 600_000L) return
+        pruned = System.currentTimeMillis()
+        state.update { j ->
+            j.copy(
+                birds = j.birds.map { if (it.clip != null && now - it.lastAt >= CLIP_KEEP_MS) it.copy(clip = null) else it },
+                sounds = j.sounds.map { if (it.clip != null && now - it.lastAt >= CLIP_KEEP_MS) it.copy(clip = null) else it },
+                barks = j.barks.map { if (it.clip != null && now - it.lastAt >= CLIP_KEEP_MS) it.copy(clip = null) else it },
+            )
+        }
+        val j = state.value
+        val used = (j.birds.map { it.clip } + j.sounds.map { it.clip } + j.barks.map { it.clip }).filterNotNull().toSet()
+        clips.listFiles()?.filter { it.name !in used && now - it.lastModified() > 60_000L }?.forEach { it.delete() }
     }
 
     /** Folds a bark into the running episode of the same dog, or opens a new one. */
@@ -170,8 +228,6 @@ class Store(private val dir: File, scope: CoroutineScope) {
 
     private fun trimBarks(barks: List<Bark>, now: Long): List<Bark> {
         val kept = barks.filter { now - it.lastAt < KEEP_MS }.takeLast(MAX_BARKS)
-        val keptClips = kept.mapNotNull { it.clip }.toSet()
-        clips.listFiles()?.filter { it.name !in keptClips }?.forEach { it.delete() }
         return kept
     }
 
@@ -217,7 +273,17 @@ class Store(private val dir: File, scope: CoroutineScope) {
         )
     }
 
-    fun addSound(key: String, at: Long, score: Float, title: String = "", subtitle: String = "", variant: String = "") = state.update { j ->
+    fun addSound(
+        key: String, at: Long, score: Float, title: String = "", subtitle: String = "", variant: String = "",
+        record: ((File) -> Unit)? = null,
+    ) {
+        val prev = state.value.sounds.lastOrNull { it.key == key }?.takeIf { at - it.lastAt < SOUND_GAP_MS }
+        val clip = if (record != null && (prev == null || score > prev.score || prev.clip == null)) newClip(record) else null
+        addSoundHere(key, at, score, title, subtitle, variant, clip)
+        pruneClips(at)
+    }
+
+    private fun addSoundHere(key: String, at: Long, score: Float, title: String, subtitle: String, variant: String, clip: String?) = state.update { j ->
         val last = j.sounds.lastOrNull { it.key == key }
         // Two different trains a few minutes apart are two events, not one long one.
         val same = last != null && at - last.lastAt < SOUND_GAP_MS && (title.isBlank() || last.title.isBlank() || title == last.title)
@@ -226,10 +292,11 @@ class Store(private val dir: File, scope: CoroutineScope) {
                 if (it !== last) it else it.copy(
                     lastAt = at, count = it.count + 1, score = maxOf(it.score, score),
                     title = it.title.ifBlank { title }, subtitle = it.subtitle.ifBlank { subtitle }, variant = it.variant.ifBlank { variant },
+                    clip = clip ?: it.clip,
                 )
             }
         } else {
-            j.sounds + SoundEvent(key, at, at, 1, score, title, subtitle, variant)
+            j.sounds + SoundEvent(key, at, at, 1, score, title, subtitle, variant, clip = clip)
         }
         j.copy(sounds = sounds.filter { at - it.lastAt < KEEP_MS }.takeLast(MAX_SOUNDS))
     }
@@ -279,7 +346,9 @@ class Store(private val dir: File, scope: CoroutineScope) {
         const val PLANE_GAP_MS = 10 * 60_000L
         const val SOUND_GAP_MS = 5 * 60_000L
         const val MAX_SOUNDS = 1_000
-        const val KEEP_MS = 7 * 24 * 3600_000L
+        const val KEEP_MS = 14 * 24 * 3600_000L
+        const val CLIP_KEEP_MS = 14 * 24 * 3600_000L
+        private val BEST_SERIALIZER = MapSerializer(String.serializer(), BestClip.serializer())
         const val MAX_BARKS = 300
         const val MAX_PLANES = 500
         const val MAX_SAMPLES = 30

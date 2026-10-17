@@ -54,7 +54,8 @@ fun StatsScreen(g: Graph) {
             delay(60_000)
         }
     }
-    val s = if (fromServer) remote else localStats(journal, { g.catalog.soundOn(it, settings) != null })
+    val best by g.store.best.collectAsState()
+    val s = if (fromServer) remote else localStats(journal, { g.catalog.soundOn(it, settings) != null }).let { it.copy(birds = it.birds.copy(best = best)) }
 
     LazyColumn(Modifier.fillMaxSize().paper().padding(horizontal = 18.dp, vertical = 16.dp)) {
         item { Caption("Statystyki", size = 24, italic = false, modifier = Modifier.fillMaxWidth()) }
@@ -97,7 +98,8 @@ private var player: MediaPlayer? = null
 
 private fun playBest(g: Graph, name: String) {
     g.scope.launch {
-        val f = g.remote.clip(name, File(g.context.cacheDir, "best/$name"), best = true) ?: return@launch
+        val f = if (!g.store.remote) File(g.store.bestDir, name).takeIf { it.exists() } ?: return@launch
+        else g.remote.clip(name, File(g.context.cacheDir, "best/$name"), best = true) ?: return@launch
         withContext(Dispatchers.Main) {
             player?.release()
             player = MediaPlayer().apply {
