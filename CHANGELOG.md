@@ -8,6 +8,15 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.16.0 - 2026-10-17
+
+- Strona publiczna: **nagrania ptaków** (▶ przy ryciny i w Dzienniku). Jedno na gatunek dziennie, to z najwyższą
+  pewnością BirdNET, i tylko takie, w którym YAMNet nie usłyszał ludzi (mowa, krzyk, śmiech, płacz, śpiew, kaszel,
+  tłum, dzieci) ani muzyki (próg 0,15; gwizd się nie liczy, bo tak bywa nazywany śpiew ptaków). W KV wygasają po
+  14 dniach. Psy, samoloty i dźwięki okolicy dalej bez nagrań.
+- Dodatek HA: przy każdym nagraniu ptaka zapisuje, czy może być publiczne (`clipPublic`). Nagrania sprzed tej wersji
+  nie mają tej oceny, więc nie trafiają na stronę.
+
 ## 0.15.0 - 2026-10-17
 
 - Dodatek HA: **nagrania wykrytych dźwięków**. Przy wykryciu ptaka albo dźwięku zostaje 3 s nagrania najlepszego

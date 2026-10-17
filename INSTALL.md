@@ -99,8 +99,9 @@ wystawiony do internetu).
 ### 7. Strona publiczna (opcjonalnie)
 
 Przykład: [Dźwięki Dolnego Migowa](https://dzwieki-migowa.qunabu.workers.dev). Dodatek co ok. 3 minuty wysyła do
-Workera Cloudflare ptaki, usłyszane samoloty i dźwięki okolicy z rycinami. Nie wysyła audio, psów, rozmów, dzieci,
-muzyki, dzwonka, współrzędnych ani odległości. Z internetu nic nie wchodzi do domowej sieci.
+Workera Cloudflare ptaki, usłyszane samoloty i dźwięki okolicy z rycinami, a z dźwięku tylko krótkie nagrania ptaków
+(jedno na gatunek dziennie, bez ludzi i muzyki według YAMNet, 14 dni). Nie wysyła psów, rozmów, dzieci, muzyki,
+dzwonka, współrzędnych ani odległości. Z internetu nic nie wchodzi do domowej sieci.
 
 1. Darmowe konto Cloudflare i token z szablonu **Edit Cloudflare Workers**.
 2. W katalogu `public-site/`: `npx wrangler kv namespace create dzwieki-migowa`, wpisz `id` do `wrangler.toml`,

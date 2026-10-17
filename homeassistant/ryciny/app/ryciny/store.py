@@ -74,7 +74,7 @@ class Store:
         self.version += 1
         self._dirty = True
 
-    def add_bird(self, sci: str, name: str, conf: float, at: int, clip: Clip = None) -> None:
+    def add_bird(self, sci: str, name: str, conf: float, at: int, clip: Clip = None, public: bool = False) -> None:
         with self.lock:
             birds = self.j["birds"]
             last = next((b for b in reversed(birds) if b["sci"] == sci), None)
@@ -82,10 +82,10 @@ class Store:
                 better = conf > last["conf"]
                 last.update(lastAt=at, count=last["count"] + 1, conf=max(last["conf"], conf))
                 if better or not last.get("clip"):
-                    self._keep_clip(last, clip)
+                    self._keep_clip(last, clip, public)
             else:
                 last = {"sci": sci, "name": name, "conf": conf, "at": at, "lastAt": at, "count": 1}
-                self._keep_clip(last, clip)
+                self._keep_clip(last, clip, public)
                 birds.append(last)
             self._count_bird(sci, name, at, conf=conf)
             self.j["birds"] = [b for b in birds if at - b["lastAt"] < KEEP_MS]
@@ -94,7 +94,7 @@ class Store:
 
     # --- recordings: the best 3 s of each event, kept CLIP_KEEP_MS ----------------------------------
 
-    def _keep_clip(self, entry: dict, clip: Clip) -> None:
+    def _keep_clip(self, entry: dict, clip: Clip, public: bool = False) -> None:
         """Writes [clip] as the entry's recording (only now, at the detection), replacing a worse one."""
         if clip is None:
             return
@@ -106,6 +106,8 @@ class Store:
         (self.clips / name).write_bytes(data)
         old = entry.get("clip")
         entry["clip"] = name
+        if "sci" in entry:
+            entry["clipPublic"] = public  # no people or music heard in it: may go on the public page
         if old:
             (self.clips / old).unlink(missing_ok=True)
 

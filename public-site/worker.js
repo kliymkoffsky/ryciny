@@ -3,6 +3,8 @@
 // visitors only ever read from KV, nothing reaches the home network.
 
 const ART_KINDS = new Set(["BIRD", "PLANE", "SCENE"]);
+const CLIP = /^[0-9a-f]{8}\.wav$/;
+const CLIP_TTL_S = 14 * 86400; // bird recordings disappear from KV after 14 days
 
 export default {
   async fetch(req, env, ctx) {
@@ -24,15 +26,24 @@ export default {
         await env.DATA.put(`art:${kind}:${key}`, await req.arrayBuffer(), { metadata: { type } });
         return Response.json({ ok: true });
       }
+      if (path === "/ingest/clip") {
+        const name = url.searchParams.get("name") || "";
+        if (!CLIP.test(name)) return new Response("name", { status: 400 });
+        await env.DATA.put(`clip:${name}`, await req.arrayBuffer(), { expirationTtl: CLIP_TTL_S });
+        return Response.json({ ok: true });
+      }
       if (path === "/ingest/has") {
-        // Which engravings are already up, so the add-on uploads each one only once even after a restart.
+        // What is already up, so the add-on uploads each engraving and recording only once even after a restart:
+        // "KIND:key" for engravings, "clip:name" for recordings.
         const list = [];
-        let cursor;
-        do {
-          const page = await env.DATA.list({ prefix: "art:", cursor });
-          list.push(...page.keys.map(k => k.name.slice(4)));
-          cursor = page.list_complete ? undefined : page.cursor;
-        } while (cursor);
+        for (const prefix of ["art:", "clip:"]) {
+          let cursor;
+          do {
+            const page = await env.DATA.list({ prefix, cursor });
+            list.push(...page.keys.map(k => prefix === "art:" ? k.name.slice(4) : k.name));
+            cursor = page.list_complete ? undefined : page.cursor;
+          } while (cursor);
+        }
         return Response.json(list);
       }
       return new Response("not found", { status: 404 });
@@ -43,6 +54,19 @@ export default {
       return new Response(state || "{}", {
         headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=60" },
       });
+    }
+
+    if (path === "/clip") {
+      const name = url.searchParams.get("name") || "";
+      if (!CLIP.test(name)) return new Response("name", { status: 400 });
+      const cache = caches.default;
+      const hit = await cache.match(req);
+      if (hit) return hit;
+      const value = await env.DATA.get(`clip:${name}`, { type: "arrayBuffer" });
+      if (!value) return new Response("missing", { status: 404 });
+      const res = new Response(value, { headers: { "Content-Type": "audio/wav", "Cache-Control": "public, max-age=86400" } });
+      ctx.waitUntil(cache.put(req, res.clone()));
+      return res;
     }
 
     if (path === "/art") {
@@ -109,6 +133,8 @@ h2{font-weight:400;font-size:24px;border-bottom:1px solid var(--rule);margin:34p
 .top a,.row a{color:inherit;text-decoration-color:var(--rule)}
 .pager{margin-top:14px;justify-content:center;align-items:center}
 .filters.top{position:sticky;top:0;z-index:2;background:var(--paper);justify-content:center;padding:8px 0;margin:0 0 12px;border-bottom:1px solid var(--rule)}
+.play{font:inherit;font-size:16px;background:none;border:1px solid var(--rule);color:var(--rubric);border-radius:50%;width:34px;height:34px;cursor:pointer;flex:none;margin-left:auto}
+.play.on{background:var(--rubric);color:var(--paper)}
 .row{display:flex;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule)}
 .thumb{width:58px;height:58px;object-fit:contain;flex:none;mix-blend-mode:multiply}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .thumb{mix-blend-mode:normal}}
@@ -145,12 +171,13 @@ a{color:var(--rubric)}
   <p>Mikrofon <b>Primo EM272</b> (kapsuła elektretowa wielokierunkowa, mikrofon krawatowy Micverve) wisi za oknem.
   Przez kartę dźwiękową USB <b>UGREEN US205</b> (48 kHz) trafia do małego komputera <b>Intel NUC</b> z Home Assistant,
   który słucha całą dobę. Co 3 sekundy nagranie przechodzi przez <b>BirdNET</b> (ptaki) i <b>YAMNet</b> (pozostałe
-  dźwięki). Samoloty są porównywane z danymi ADS-B, a pociągi z rozkładem PKP PLK. Dźwięk nie wychodzi z domu: na tę
-  stronę trafia tylko to, co zostało rozpoznane.</p>
+  dźwięki). Samoloty są porównywane z danymi ADS-B, a pociągi z rozkładem PKP PLK. Na stronę trafia to, co zostało
+  rozpoznane, a z dźwięku tylko krótkie nagrania ptaków (▶): jedno na gatunek dziennie, wyłącznie takie, w których
+  model nie usłyszał ludzi ani muzyki. Po 14 dniach znikają.</p>
   <footer>
     Rozpoznawanie: <a href="https://birdnet.cornell.edu/">BirdNET</a> i YAMNet, na komputerze w domu; pewność to ocena modelu,
     nie obserwacja ornitologa. Ryciny ptaków: <a href="https://fugleramme.no/">fugleramme</a> (CC BY-SA 4.0) i tablice z domeny
-    publicznej; ryciny samolotów i dźwięków generowane. Samoloty: adsb.lol, adsbdb. Nie ma tu nagrań dźwięku.
+    publicznej; ryciny samolotów i dźwięków generowane. Samoloty: adsb.lol, adsbdb. Nagrania: tylko ptaki, sprawdzane automatycznie, czy nie słychać w nich ludzi; 14 dni.
     · <a href="https://github.com/qunabu/ryciny">Ryciny na GitHubie</a>
   </footer>
 </main>
@@ -177,13 +204,25 @@ async function load() {
 }
 
 const wiki = sci => 'https://pl.wikipedia.org/wiki/Special:Search?go=Go&search=' + encodeURIComponent(sci);
+let player = null;
+const playBtn = name => name ? '<button class="play" title="Posłuchaj" data-n="' + name + '" onclick="play(this)">▶</button>' : '';
+function play(btn) {
+  const name = btn.dataset.n;
+  if (player) { player.pause(); document.querySelectorAll('.play.on').forEach(b => { b.classList.remove('on'); b.textContent = '▶'; }); }
+  if (btn.dataset.playing) { delete btn.dataset.playing; player = null; return; }
+  document.querySelectorAll('.play[data-playing]').forEach(b => delete b.dataset.playing);
+  player = new Audio('clip?name=' + name);
+  btn.dataset.playing = '1'; btn.classList.add('on'); btn.textContent = '■';
+  player.onended = () => { delete btn.dataset.playing; btn.classList.remove('on'); btn.textContent = '▶'; };
+  player.play();
+}
 const wikiLink = (sci, label) => '<a href="' + wiki(sci) + '" target="_blank" rel="noopener">' + label + '</a>';
 let shown = null; // the plate being looked at with the arrows; null = always the newest
 
 function plates() {
   const s = state, items = [];
   const on = k => filter === 'all' || filter === k;
-  if (on('birds')) s.birds.forEach(b => items.push({at: b.lastAt, kind: 'BIRD', key: b.sci, title: b.name, sci: b.sci,
+  if (on('birds')) s.birds.forEach(b => items.push({at: b.lastAt, kind: 'BIRD', key: b.sci, title: b.name, sci: b.sci, audio: b.audio,
     lines: [b.sci, day(b.lastAt) + ' ' + hhmm(b.lastAt) + ' · pewność ' + Math.round(b.conf * 100) + '%' + (b.count > 1 ? ' · ' + b.count + '×' : '')]}));
   if (on('planes')) s.planes.forEach(p => items.push({at: p.at, kind: 'PLANE', key: p.art, title: p.title,
     lines: [[p.airline, p.callsign].filter(Boolean).join(' · '), p.route, 'słychać było ' + day(p.at) + ' o ' + hhmm(p.at)]}));
@@ -205,7 +244,7 @@ function renderPlate() {
       ' · <a href="#" data-now>wróć do najnowszego</a>') + '</span>' + go(i - 1) + 'później ›</button></div>' +
     art(n.kind, n.key, 'big') + '<div class="t">' + esc(n.title.charAt(0).toUpperCase() + n.title.slice(1)) + '</div>' +
     n.lines.filter(Boolean).map(l => '<div class="l">' + esc(l) + '</div>').join('') +
-    (n.sci ? '<div class="l">' + wikiLink(n.sci, 'w Wikipedii ↗') + '</div>' : '');
+    (n.sci ? '<div class="l">' + (n.audio ? playBtn(n.audio) + ' ' : '') + wikiLink(n.sci, 'w Wikipedii ↗') + '</div>' : '');
   $('#plate').querySelectorAll('button[data-i]').forEach(b => b.onclick = () => { const j = +b.dataset.i; shown = j === 0 ? null : list[j].id; renderPlate(); });
   const now = $('#plate').querySelector('[data-now]');
   if (now) now.onclick = e => { e.preventDefault(); shown = null; renderPlate(); };
@@ -271,7 +310,7 @@ function render() {
   const rows = [];
   if (filter === 'all' || filter === 'birds') s.birds.forEach(b => rows.push({at: b.lastAt, html: '<div class="row">' + art('BIRD', b.sci) +
     '<div>' + wikiLink(b.sci, esc(b.name.charAt(0).toUpperCase() + b.name.slice(1))) + '<div class="d">' + day(b.lastAt) + ' ' + hhmm(b.lastAt) + ' · ' + esc(b.sci) +
-    ' · ' + Math.round(b.conf * 100) + '%' + (b.count > 1 ? ' · ' + b.count + '×' : '') + '</div></div></div>'}));
+    ' · ' + Math.round(b.conf * 100) + '%' + (b.count > 1 ? ' · ' + b.count + '×' : '') + '</div></div>' + playBtn(b.audio) + '</div>'}));
   if (filter === 'all' || filter === 'planes') s.planes.forEach(p => rows.push({at: p.lastAt, html: '<div class="row">' + art('PLANE', p.art) +
     '<div>' + esc(p.title) + (p.callsign ? ' · ' + esc(p.callsign) : '') + '<div class="d">' +
     esc([day(p.at) + ' ' + hhmm(p.at), p.airline, p.route, p.altM ? p.altM + ' m' : ''].filter(Boolean).join(' · ')) + '</div></div></div>'}));
