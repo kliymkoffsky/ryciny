@@ -8,6 +8,11 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.19.1 - 2026-10-17
+
+- The Frame: kolumna statystyk z większym odstępem od kreski, tytuły sekcji podkreślone i wyrównane do tej samej
+  lewej krawędzi co wiersze, równe odstępy, liczby w „Dziś za oknem” w jednej kolumnie, paski pod nazwami ptaków.
+
 ## 0.19.0 - 2026-10-17
 
 - Dodatek HA: **Samsung The Frame** prosto z Home Assistant (bez telefonu). Obraz 4K: po lewej rycina tego, co

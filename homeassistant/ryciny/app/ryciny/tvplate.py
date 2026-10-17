@@ -114,22 +114,20 @@ def render(plate: dict | None, engraving: Image.Image | None, about: str, stats:
         if about:
             wrap(about, italic, 54, INK_SOFT, cx, y + 30, left_w * 0.82, 3)
 
-    # Right: statistics.
-    x0 = inset + left_w + 40
-    d.line((x0 - 40, 260, x0 - 40, H - 260), fill=INK_SOFT, width=2)
-    rw = W - inset - 90 - x0
-    y = 260
-    line("Dziś za oknem", regular, 84, RUBRIC, x0, y, rw, "ls")
-    y += 110
-    b, p, s = stats["birds"], stats["planes"], stats["sounds"]
-    for n, label in ((b["today"], "gatunków ptaków"), (p["today"], "usłyszanych samolotów"), (s["trainsToday"], "pociągów")):
-        d.text((x0, y), str(n), font=font(regular, 96), fill=RUBRIC, anchor="ls")
-        d.text((x0 + 190, y), label, font=font(italic, 58), fill=INK, anchor="ls")
-        y += 105
-    y += 40
-    line("Najczęściej w tym tygodniu", regular, 66, RUBRIC, x0, y, rw, "ls")
-    y += 85
-    TH = 104  # engraving thumbnail beside each bird
+    # Right: statistics. One left edge for titles and rows, one rhythm: GAP before a section, STEP between rows.
+    rule_x = inset + left_w + 30
+    d.line((rule_x, 200, rule_x, H - 200), fill=INK_SOFT, width=2)
+    x0 = rule_x + 110
+    x1 = W - inset - 110
+    rw = x1 - x0
+    GAP, TITLE = 90, 66
+    TH = 100  # engraving thumbnail beside each bird
+    tx = x0 + TH + 34
+
+    def title(text: str, y: float) -> float:
+        line(text, regular, TITLE, RUBRIC, x0, y, rw, "ls")
+        d.line((x0, y + 24, x1, y + 24), fill=(*INK_SOFT,), width=1)
+        return y + 24 + 82
 
     def thumb(sci: str, y_base: float) -> None:
         t = thumbs.get(sci)
@@ -138,26 +136,30 @@ def render(plate: dict | None, engraving: Image.Image | None, about: str, stats:
         t = t.convert("RGBA")
         f = min(TH / t.width, TH / t.height)
         t = t.resize((max(1, round(t.width * f)), max(1, round(t.height * f))), Image.LANCZOS)
-        img.paste(t, (round(x0 + (TH - t.width) / 2), round(y_base - TH * 0.72 + (TH - t.height) / 2)), t)
+        img.paste(t, (round(x0 + (TH - t.width) / 2), round(y_base - TH * 0.7 + (TH - t.height) / 2)), t)
 
-    tx = x0 + TH + 26
+    b, p, s = stats["birds"], stats["planes"], stats["sounds"]
+    y = title("Dziś za oknem", 250)
+    for n, label in ((b["today"], "gatunków ptaków"), (p["today"], "usłyszanych samolotów"), (s["trainsToday"], "pociągów")):
+        d.text((x0 + TH, y), str(n), font=font(regular, 84), fill=RUBRIC, anchor="rs")
+        d.text((tx, y), label, font=font(italic, 56), fill=INK, anchor="ls")
+        y += 96
+    y = title("Najczęściej w tym tygodniu", y - 96 + GAP + 70)
     top = b["top"][:5]
     most = max([t["count"] for t in top] or [1])
     for t in top:
         thumb(t["sci"], y)
-        line(t["name"].capitalize(), italic, 54, INK, tx, y, rw * 0.62, "ls")
-        d.text((x0 + rw, y), f"{t['count']}×", font=font(italic, 50), fill=INK_SOFT, anchor="rs")
-        d.rectangle((tx, y + 22, tx + max(8, (x0 + rw * 0.9 - tx) * t["count"] / most), y + 30), fill=RUBRIC)
-        y += 122
-    y += 30
+        line(t["name"].capitalize(), italic, 54, INK, tx, y, (x1 - 150) - tx, "ls")
+        d.text((x1, y), f"{t['count']}×", font=font(italic, 50), fill=INK_SOFT, anchor="rs")
+        d.rectangle((tx, y + 30, tx + max(8, (x1 - 150 - tx) * t["count"] / most), y + 37), fill=RUBRIC)
+        y += 120
     if b["chanceNow"]:
-        line(f"Szansa usłyszenia teraz ({stats['hour']}:00–{stats['hour'] + 1}:00)", regular, 60, RUBRIC, x0, y, rw, "ls")
-        y += 80
+        y = title(f"Szansa usłyszenia teraz ({stats['hour']}:00–{stats['hour'] + 1}:00)", y - 120 + GAP + 70)
         for c in b["chanceNow"][:3]:
-            thumb(c["sci"], y + 10)
-            line(c["name"].capitalize(), italic, 52, INK, tx, y + 10, rw * 0.6, "ls")
-            d.text((x0 + rw, y + 10), f"{round(c['now'] * 100)}%", font=font(italic, 52), fill=INK_SOFT, anchor="rs")
-            y += 118
+            thumb(c["sci"], y)
+            line(c["name"].capitalize(), italic, 54, INK, tx, y, (x1 - 150) - tx, "ls")
+            d.text((x1, y), f"{round(c['now'] * 100)}%", font=font(italic, 50), fill=INK_SOFT, anchor="rs")
+            y += 120
     d.text((W - inset - 60, H - inset - 50), "Ryciny · BirdNET, YAMNet, adsb.lol", font=font(italic, 40), fill=INK_SOFT, anchor="rs")
 
     buf = io.BytesIO()
