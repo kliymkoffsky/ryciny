@@ -205,7 +205,8 @@ def render(plate: dict | None, engraving: Image.Image | None, about: str, stats:
 
     b, p, s = stats["birds"], stats["planes"], stats["sounds"]
     y = title("Dziś za oknem", 250)
-    for n, label in ((b["today"], "gatunków ptaków"), (p["today"], "usłyszanych samolotów"), (s["trainsToday"], "pociągów")):
+    a = stats.get("animals", {})
+    for n, label in ((b["today"], "gatunków ptaków"), (a.get("barksToday", 0), "razy szczekał pies"), (a.get("kindsToday", 0), "innych zwierząt")):
         d.text((x0 + TH, y), str(n), font=font(regular, 84), fill=RUBRIC, anchor="rs")
         d.text((tx, y), label, font=font(italic, 56), fill=INK, anchor="ls")
         y += 96

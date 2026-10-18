@@ -8,6 +8,13 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.23.0 - 2026-10-18
+
+- The Frame: **tylko zwierzęta**. Rycina pokazuje najnowsze z: ptaków, zwierząt z dźwięków okolicy (kot, kogut, koń,
+  krowa, owca, koza, świnia, żaby, świerszcze, pszczoły, komar) i psów (szczekanie: pies po imieniu, jeśli oznaczony,
+  inaczej kundel jego wielkości). Bez samolotów, pociągów, pogody i ludzi. W „Dziś za oknem”: gatunki ptaków, ile
+  razy szczekał pies i ile innych zwierząt (zamiast samolotów i pociągów).
+
 ## 0.22.1 - 2026-10-18
 
 - Dodatek HA: YAMNet używany po kolei przez analizę na żywo i ponowną ocenę nagrań (blokada); wcześniej

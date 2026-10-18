@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import hashlib
 import json
 import logging
@@ -14,8 +15,11 @@ from PIL import Image
 
 from pathlib import Path
 
-from . import __version__, config, dsp, plate, stats, tvplate
+from . import __version__, config, dsp, plate, stats, store, tvplate
 from .frame import Frame
+
+# Sounds of animals (sounds.json keys): the only sounds the TV shows, besides birds and dogs.
+ANIMAL_SOUNDS = {"cat", "rooster", "horse", "cow", "sheep", "goat", "pig", "frog", "cricket", "bee", "mosquito"}
 from .store import now_ms
 
 WEB = Path(__file__).parent / "web"
@@ -84,9 +88,14 @@ class App:
 
     def tv_plate(self, wait: bool) -> tuple[bytes, str, str]:
         """The TV picture now: (jpeg, identity, title). A wall should not go blank after a quiet night: a week back."""
-        # Not people or music on the wall: the same sounds the public page leaves out.
-        from .publish import PRIVATE_SOUNDS
-        current = plate.newest(self.store.snapshot(), self.sounds, 7 * 24, lambda k: k not in PRIVATE_SOUNDS and self.sound_on(k))
+        # Only animals on the wall: birds, animal sounds and dogs; no planes, trains, weather or people.
+        j = self.store.snapshot()
+        current = plate.newest({**j, "planes": []}, self.sounds, 7 * 24, lambda k: k in ANIMAL_SOUNDS and self.sound_on(k))
+        dog = self.tv_dog(j)
+        if dog and (current is None or dog["at"] > current["at"]):
+            current = dog
+        if current:
+            current["lines"] = [x for x in current["lines"] if x]
         engraving, about = None, ""
         if current:
             f = self.art.load(current["kind"], current["key"], current["subject"], current.get("airline", ""),
@@ -94,7 +103,12 @@ class App:
             engraving = Image.open(f) if f else None
             if current["kind"] == "BIRD":
                 about = self.wiki.about(current["key"])
-        st = stats.compute(self.store.snapshot(), self.store.history_snapshot(), self.sounds, self.sound_on)
+        st = stats.compute(j, self.store.history_snapshot(), self.sounds, self.sound_on)
+        start = int(dt.datetime.now(store.ZONE).replace(hour=0, minute=0, second=0, microsecond=0).timestamp() * 1000)
+        st["animals"] = {
+            "barksToday": sum(1 for b in j["barks"] if b["lastAt"] >= start),
+            "kindsToday": len({e["key"] for e in j["sounds"] if e["key"] in ANIMAL_SOUNDS and self.sound_on(e["key"]) and e["lastAt"] >= start}),
+        }
         identity = json.dumps([current and current["kind"], current and current["key"], current and current["title"],
                                current and current["lines"][:2]], ensure_ascii=False)
         # Engravings beside the birds in the statistics (fetched once each; birds' plates cost nothing).
@@ -108,6 +122,23 @@ class App:
                     pass
         jpeg = tvplate.render(current, engraving, about, st, self.fonts, thumbs)
         return jpeg, identity, current["title"] if current else "cisza"
+
+    def tv_dog(self, j: dict) -> dict | None:
+        """The newest bark of the last week as a plate: the dog by name if tagged, else a mongrel of its size."""
+        since = now_ms() - 7 * 86_400_000
+        barks = [b for b in j["barks"] if b["lastAt"] >= since]
+        if not barks:
+            return None
+        b = max(barks, key=lambda x: x["lastAt"])
+        dog = next((d for d in j["dogs"] if d["id"] == b.get("dogId")), None)
+        if dog:
+            key, subject, title = dog["breed"], dog["breedEn"], f"{dog['name']} szczekał"
+        else:
+            breeds = json.loads(self.assets.text("dog_breeds.json"))
+            m = breeds[{"mały": 0, "duży": 2}.get(b.get("size"), 1)]
+            key, subject, title = m["pl"], m["en"], "Szczekał pies" + (f", raczej {b['size']}" if b.get("size") not in (None, "?") else "")
+        return {"kind": "DOG", "key": key, "subject": subject, "title": title, "at": b["at"],
+                "lines": [dog["breed"] if dog else "", f"{plate.hhmm(b['at'])} · {b['count']}×"]}
 
     def frame_loop(self) -> None:
         """Sends the TV plate when what is heard changes (at most every frame_every_min), and every 30 min for the statistics."""

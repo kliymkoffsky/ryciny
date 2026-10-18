@@ -43,7 +43,8 @@ def newest(journal: dict, sounds: dict, lookback_h: int = 12, sounds_on=lambda k
                                      "lines": [e["title"], e["subtitle"], f"{hhmm(e['at'])}–{hhmm(e['lastAt'])}"]}))
     if not found:
         return None
-    plate = max(found, key=lambda x: x[0])[1]
+    at, plate = max(found, key=lambda x: x[0])
+    plate["at"] = at
     plate["lines"] = [x for x in plate["lines"] if x]
     return plate
 
