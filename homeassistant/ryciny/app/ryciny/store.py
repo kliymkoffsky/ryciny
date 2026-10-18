@@ -104,7 +104,8 @@ class Store:
 
     # --- recordings: the best 3 s of each event, kept CLIP_KEEP_MS ----------------------------------
 
-    def _keep_clip(self, entry: dict, clip: Clip, public: bool = False) -> None:
+    def _keep_clip(self, entry: dict, clip: Clip, public=False) -> None:
+        """[public]: a bool or a function giving it (computed only when a recording is actually written)."""
         """Writes [clip] as the entry's recording (only now, at the detection), replacing a worse one."""
         if clip is None:
             return
@@ -116,8 +117,7 @@ class Store:
         (self.clips / name).write_bytes(data)
         old = entry.get("clip")
         entry["clip"] = name
-        if "sci" in entry:
-            entry["clipPublic"] = public  # no people or music heard in it: may go on the public page
+        entry["clipPublic"] = bool(public() if callable(public) else public)  # no people or music in it: may be public
         if old:
             (self.clips / old).unlink(missing_ok=True)
 
@@ -148,18 +148,19 @@ class Store:
         (self.best_dir / file).write_bytes(data)
         if best:
             (self.best_dir / best["clip"]).unlink(missing_ok=True)
-        self.best[sci] = {"sci": sci, "name": name, "conf": round(conf, 4), "at": at, "clip": file, "public": public}
+        self.best[sci] = {"sci": sci, "name": name, "conf": round(conf, 4), "at": at, "clip": file,
+                          "public": bool(public() if callable(public) else public)}
         self._best_dirty = True
 
     def recordings_to_recheck(self) -> list[tuple[dict, Path]]:
         with self.lock:
-            out = [(b, self.clips) for b in self.j["birds"] if b.get("clip") and not b.get("clipPublic")]
+            out = [(b, self.clips) for key in ("birds", "sounds") for b in self.j[key] if b.get("clip") and not b.get("clipPublic")]
             out += [(b, self.best_dir) for b in self.best.values() if not b.get("public")]
             return [(dict(e), d) for e, d in out]
 
     def mark_public(self, e: dict) -> None:
         with self.lock:
-            for b in self.j["birds"]:
+            for b in self.j["birds"] + self.j["sounds"]:
                 if b.get("clip") == e["clip"]:
                     b["clipPublic"] = True
             for b in self.best.values():
@@ -255,7 +256,7 @@ class Store:
             self._changed()
 
     def add_sound(self, key: str, at: int, score: float, title: str = "", subtitle: str = "", variant: str = "",
-                  clip: Clip = None) -> None:
+                  clip: Clip = None, public=False) -> None:
         with self.lock:
             sounds = self.j["sounds"]
             last = next((s for s in reversed(sounds) if s["key"] == key), None)
@@ -265,11 +266,11 @@ class Store:
                 last.update(lastAt=at, count=last["count"] + 1, score=max(last["score"], score),
                             title=last["title"] or title, subtitle=last["subtitle"] or subtitle, variant=last["variant"] or variant)
                 if better or not last.get("clip"):
-                    self._keep_clip(last, clip)
+                    self._keep_clip(last, clip, public)
             else:
                 last = {"key": key, "at": at, "lastAt": at, "count": 1, "score": score,
                         "title": title, "subtitle": subtitle, "variant": variant}
-                self._keep_clip(last, clip)
+                self._keep_clip(last, clip, public)
                 sounds.append(last)
             self.j["sounds"] = [s for s in sounds if at - s["lastAt"] < KEEP_MS][-MAX_SOUNDS:]
             self._prune_clips(at)

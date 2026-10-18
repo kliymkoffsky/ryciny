@@ -177,12 +177,12 @@ a{color:var(--rubric)}
   Przez kartę dźwiękową USB <b>UGREEN US205</b> (48 kHz) trafia do małego komputera <b>Intel NUC</b> z Home Assistant,
   który słucha całą dobę. Co 3 sekundy nagranie przechodzi przez <b>BirdNET</b> (ptaki) i <b>YAMNet</b> (pozostałe
   dźwięki). Samoloty są porównywane z danymi ADS-B, a pociągi z rozkładem PKP PLK. Na stronę trafia to, co zostało
-  rozpoznane, a z dźwięku tylko krótkie nagrania ptaków (▶): jedno na gatunek dziennie, wyłącznie takie, w których
-  model nie usłyszał ludzi ani muzyki. Po 14 dniach znikają.</p>
+  rozpoznane, z 9-sekundowym nagraniem (▶), ale tylko takim, w którym model nie usłyszał ludzi ani muzyki; rozmów i
+  dzieci nie nagrywamy wcale. Po 14 dniach nagrania znikają.</p>
   <footer>
     Rozpoznawanie: <a href="https://birdnet.cornell.edu/">BirdNET</a> i YAMNet, na komputerze w domu; pewność to ocena modelu,
     nie obserwacja ornitologa. Ryciny ptaków: <a href="https://fugleramme.no/">fugleramme</a> (CC BY-SA 4.0) i tablice z domeny
-    publicznej; ryciny samolotów i dźwięków generowane. Samoloty: adsb.lol, adsbdb. Nagrania: tylko ptaki, sprawdzane automatycznie, czy nie słychać w nich ludzi; 14 dni.
+    publicznej; ryciny samolotów i dźwięków generowane. Samoloty: adsb.lol, adsbdb. Nagrania 9 s, sprawdzane automatycznie, czy nie słychać w nich ludzi ani muzyki; 14 dni.
     · <a href="https://github.com/qunabu/ryciny">Ryciny na GitHubie</a>
   </footer>
 </main>
@@ -231,7 +231,7 @@ function plates() {
     lines: [b.sci, day(b.lastAt) + ' ' + hhmm(b.lastAt) + ' · pewność ' + Math.round(b.conf * 100) + '%' + (b.count > 1 ? ' · ' + b.count + '×' : '')]}));
   if (on('planes')) s.planes.forEach(p => items.push({at: p.at, kind: 'PLANE', key: p.art, title: p.title,
     lines: [[p.airline, p.callsign].filter(Boolean).join(' · '), p.route, 'słychać było ' + day(p.at) + ' o ' + hhmm(p.at)]}));
-  if (on('sounds')) s.sounds.forEach(e => items.push({at: e.at, kind: 'SCENE', key: e.art, title: e.label,
+  if (on('sounds')) s.sounds.forEach(e => items.push({at: e.at, kind: 'SCENE', key: e.art, title: e.label, audio: e.audio,
     lines: [e.title, e.subtitle, day(e.at) + ' ' + hhmm(e.at) + '–' + hhmm(e.lastAt)]}));
   items.forEach(i => i.id = i.kind + ':' + i.key + ':' + i.at);
   return items.sort((a, b) => b.at - a.at);
@@ -249,7 +249,8 @@ function renderPlate() {
       ' · <a href="#" data-now>wróć do najnowszego</a>') + '</span>' + go(i - 1) + 'później ›</button></div>' +
     art(n.kind, n.key, 'big') + '<div class="t">' + esc(n.title.charAt(0).toUpperCase() + n.title.slice(1)) + '</div>' +
     n.lines.filter(Boolean).map(l => '<div class="l">' + esc(l) + '</div>').join('') +
-    (n.sci ? '<div class="l">' + (n.audio ? playBtn(n.audio) + ' ' : '') + wikiLink(n.sci, 'w Wikipedii ↗') + '</div>' : '');
+    (n.sci ? '<div class="l">' + (n.audio ? playBtn(n.audio) + ' ' : '') + wikiLink(n.sci, 'w Wikipedii ↗') + '</div>'
+      : n.audio ? '<div class="l">' + playBtn(n.audio) + '</div>' : '');
   $('#plate').querySelectorAll('button[data-i]').forEach(b => b.onclick = () => { const j = +b.dataset.i; shown = j === 0 ? null : list[j].id; renderPlate(); });
   const now = $('#plate').querySelector('[data-now]');
   if (now) now.onclick = e => { e.preventDefault(); shown = null; renderPlate(); };
@@ -326,7 +327,7 @@ function render() {
     esc([day(p.at) + ' ' + hhmm(p.at), p.airline, p.route, p.altM ? p.altM + ' m' : ''].filter(Boolean).join(' · ')) + '</div></div></div>'}));
   if (filter === 'all' || filter === 'sounds') s.sounds.forEach(e => rows.push({at: e.lastAt, html: '<div class="row">' + art('SCENE', e.art) +
     '<div>' + esc(e.label) + (e.title ? ': ' + esc(e.title) : '') + '<div class="d">' + day(e.at) + ' ' + hhmm(e.at) + '–' + hhmm(e.lastAt) +
-    (e.subtitle ? ' · ' + esc(e.subtitle) : '') + '</div></div></div>'}));
+    (e.subtitle ? ' · ' + esc(e.subtitle) : '') + '</div></div>' + playBtn(e.audio) + '</div>'}));
   rows.sort((a, b) => b.at - a.at);
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   page = Math.min(page, pages - 1);

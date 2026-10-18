@@ -116,7 +116,7 @@ def test_chance_of_hearing_a_bird():
     assert s["birds"]["chanceNow"][0]["sci"] == "Pica pica" and s["birds"]["chanceNow"][0]["now"] == 0.25
 
 
-def test_public_bird_audio_one_per_species_and_day_and_only_without_people():
+def test_public_audio_for_every_entry_without_people():
     from ryciny.publish import public_state
     from ryciny.store import now_ms
     t = now_ms()
@@ -125,7 +125,7 @@ def test_public_bird_audio_one_per_species_and_day_and_only_without_people():
     j = {"birds": [bird(0.8, t - 3000, "a.wav", True), bird(0.95, t - 2000, "b.wav", False), bird(0.9, t - 1000, "c.wav", True)],
          "planes": [], "sounds": [], "barks": [], "dogs": []}
     s = public_state(j, {}, lambda k: True)
-    assert [b.get("audio") for b in s["birds"]] == [None, None, "c.wav"]
+    assert [b.get("audio") for b in s["birds"]] == ["a.wav", None, "c.wav"]
     assert "clip" not in str(s).replace("'audio'", "")
 
 

@@ -8,6 +8,12 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.22.0 - 2026-10-18
+
+- Strona publiczna: **nagranie przy każdym wpisie** ptaka i dźwięku okolicy (9 s, MP3), tak jak w HA, a nie jedno
+  na gatunek dziennie. Warunek bez zmian: YAMNet nie słyszy w nagraniu ludzi ani muzyki; rozmów i dzieci dodatek
+  nie nagrywa w ogóle. Dźwięki okolicy też dostają ocenę `clipPublic`. Stan strony co 4 min (limit zapisów KV).
+
 ## 0.21.1 - 2026-10-18
 
 - Filtr „bez ludzi” odrzucał w nocy prawie wszystkie nagrania ptaków: przy cichym tle YAMNet słyszy w szumie

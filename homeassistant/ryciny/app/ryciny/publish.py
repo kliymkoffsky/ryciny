@@ -1,9 +1,9 @@
 """Optional public page: pushes a trimmed journal and the engravings to the Cloudflare Worker in public-site/.
 
 Only what is fine for anyone to see goes out: birds, heard planes and neighbourhood sounds. No dogs, no speech,
-children, music or doorbell, no coordinates and no distances (those would place the house). The only audio is
-birds: one recording per species and day, and only one in which YAMNet heard no people and no music; the Worker
-drops it after CLIP_DAYS.
+children, music or doorbell, no coordinates and no distances (those would place the house). Audio: the 9 s
+recording of each bird and sound entry, only when YAMNet heard no people and no music in it; the Worker drops it
+after CLIP_DAYS.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from .store import local, now_ms
 log = logging.getLogger(__name__)
 
 PRIVATE_SOUNDS = {"talking", "children", "music", "doorbell"}
-EVERY_S = 180  # KV on the free plan takes 1000 writes a day
+EVERY_S = 240  # KV on the free plan takes 1000 writes a day: the state, plus one write per new recording
 KEEP_DAYS = 30
 CLIP_DAYS = 14
 
@@ -29,15 +29,10 @@ def public_state(journal: dict, sounds: dict, sound_on) -> dict:
     since = now_ms() - KEEP_DAYS * 86_400_000
     birds = [{"name": b["name"], "sci": b["sci"], "conf": round(b["conf"], 2), "count": b["count"], "lastAt": b["lastAt"]}
              for b in journal["birds"] if b["lastAt"] >= since]
-    # One public recording per species and day: the most confident one that YAMNet found free of people and music.
-    best: dict[tuple[str, str], dict] = {}
+    # Every entry's recording, when YAMNet found no people and no music in it.
     clip_since = now_ms() - CLIP_DAYS * 86_400_000
-    for b in journal["birds"]:
-        if b.get("clip") and b.get("clipPublic") and b["lastAt"] >= clip_since:
-            k = (b["sci"], local(b["lastAt"]).strftime("%Y-%m-%d"))
-            if k not in best or b["conf"] > best[k]["conf"]:
-                best[k] = b
-    audio = {(b["sci"], b["lastAt"]): b["clip"] for b in best.values()}
+    audio = {(b["sci"], b["lastAt"]): b["clip"] for b in journal["birds"]
+             if b.get("clip") and b.get("clipPublic") and b["lastAt"] >= clip_since}
     for b in birds:
         if (b["sci"], b["lastAt"]) in audio:
             b["audio"] = audio[(b["sci"], b["lastAt"])]
@@ -51,6 +46,8 @@ def public_state(journal: dict, sounds: dict, sound_on) -> dict:
             continue
         out_sounds.append({"key": e["key"], "label": s["past"], "title": e["title"], "subtitle": e["subtitle"], "count": e["count"],
                            "at": e["at"], "lastAt": e["lastAt"], "art": f"{e['key']}-{e['variant']}" if e["variant"] else e["key"]})
+        if e.get("clip") and e.get("clipPublic") and e["lastAt"] >= clip_since:
+            out_sounds[-1]["audio"] = e["clip"]
     return {"updatedAt": now_ms(), "birds": birds, "planes": planes, "sounds": out_sounds}
 
 
@@ -97,7 +94,7 @@ class Publisher:
                 log.warning("publish: %s", e)
 
     def _clips(self, state: dict) -> None:
-        for b in state["birds"]:
+        for b in state["birds"] + state["sounds"]:
             name = b.get("audio")
             if not name or f"clip:{name}" in self.sent:
                 continue
@@ -107,7 +104,7 @@ class Publisher:
                 continue
             self._put("/ingest/clip?" + urllib.parse.urlencode({"name": name}), f.read_bytes(), "audio/mpeg" if f.suffix == ".mp3" else "audio/wav")
             self.sent.add(f"clip:{name}")
-            log.info("publish: clip %s %s", b["sci"], name)
+            log.info("publish: clip %s %s", b.get("sci") or b.get("key"), name)
 
     def _best(self, state: dict) -> None:
         best = state["stats"]["birds"]["best"]
