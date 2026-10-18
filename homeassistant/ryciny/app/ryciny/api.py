@@ -257,6 +257,9 @@ class App:
                         return self._json({"ok": ok}, 200 if ok else 404)
                     if path == "/api/dogs":
                         return self._json({"id": app.store.new_dog(body["name"], body["breed"], body["breedEn"], body.get("id"))})
+                    if path == "/api/clips/recheck":
+                        a = app.listener.analyzer if app.listener else None
+                        return self._json({"public": a.recheck_public() if a else 0})
                     if path == "/api/frame/push":
                         jpeg, identity, title = app.tv_plate(wait=True)
                         app.frame.push(jpeg, identity, title)

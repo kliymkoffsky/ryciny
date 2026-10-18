@@ -8,6 +8,15 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.21.1 - 2026-10-18
+
+- Filtr „bez ludzi” odrzucał w nocy prawie wszystkie nagrania ptaków: przy cichym tle YAMNet słyszy w szumie
+  „oddech” i „parsknięcie” (ok. 0,2 przy progu 0,15). Klasy oddechu, świstu, chrapania, sapania, parsknięcia i
+  pociągania nosem (36–41, 45) nie liczą się już jako ludzie; mowa, krzyk, śmiech, śpiew, kaszel, kichanie, tłum,
+  dzieci i muzyka dalej tak.
+- `POST /api/clips/recheck`: jeszcze raz ocenia zapisane nagrania ptaków odrzucone ze strony publicznej.
+- Ocena sąsiednich okien liczy YAMNet raz na sekundę (wcześniej osobno dla każdej klasy).
+
 ## 0.21.0 - 2026-10-17
 
 - **Nagrania 9 s** zamiast 3 s: 3 s przed wykryciem, okno wykrycia i 3 s po nim (analiza idzie jedno okno za

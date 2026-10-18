@@ -151,6 +151,23 @@ class Store:
         self.best[sci] = {"sci": sci, "name": name, "conf": round(conf, 4), "at": at, "clip": file, "public": public}
         self._best_dirty = True
 
+    def recordings_to_recheck(self) -> list[tuple[dict, Path]]:
+        with self.lock:
+            out = [(b, self.clips) for b in self.j["birds"] if b.get("clip") and not b.get("clipPublic")]
+            out += [(b, self.best_dir) for b in self.best.values() if not b.get("public")]
+            return [(dict(e), d) for e, d in out]
+
+    def mark_public(self, e: dict) -> None:
+        with self.lock:
+            for b in self.j["birds"]:
+                if b.get("clip") == e["clip"]:
+                    b["clipPublic"] = True
+            for b in self.best.values():
+                if b.get("clip") == e["clip"]:
+                    b["public"] = True
+                    self._best_dirty = True
+            self._changed()
+
     def best_snapshot(self) -> dict:
         with self.lock:
             return json.loads(json.dumps(self.best))

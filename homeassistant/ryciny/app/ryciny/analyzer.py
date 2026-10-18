@@ -15,9 +15,10 @@ from .store import Store
 AIRCRAFT_THRESHOLD = 0.25
 NO_AUDIO = {"talking", "children"}  # only the fact is kept, never a recording of people
 PLANE_MASK_KM = 3.0
-# YAMNet classes of people (speech, shouts, laughter, crying, singing, breathing, coughs, crowds, children playing)
-# and music. Whistling (35) is left out: birdsong is often called whistling.
-PEOPLE = [*range(0, 35), *range(36, 46), *range(61, 67), 132, 133]
+# YAMNet classes of people (speech, shouts, laughter, crying, singing, coughs, sneezes, crowds, children playing)
+# and music. Whistling (35) is left out: birdsong is often called whistling. So are breathing, wheeze, snoring, gasp,
+# pant, snort and sniff (36-41, 45): on a quiet night YAMNet hears them in plain background noise (about 0.2).
+PEOPLE = [*range(0, 35), 42, 43, 44, *range(61, 67), 132, 133]
 PEOPLE_MAX = 0.15  # GDN is 2 km away: jets on approach rumble like thunder, ships and wind
 
 
@@ -60,9 +61,33 @@ class Analyzer:
             return True
         return sound.get("enabled", True)
 
-    def _people(self, window: np.ndarray) -> float:
-        a16 = dsp.decimate48to16(window)
-        return max(float(max(self.yamnet.run(a16[i * 16_000:i * 16_000 + Yamnet.SAMPLES])[0][k] for k in PEOPLE)) for i in range(3))
+    def _people(self, x: np.ndarray) -> float:
+        """The strongest people/music score in [x] (48 kHz), second by second."""
+        a16 = dsp.decimate48to16(x)
+        best = 0.0
+        for i in range(0, max(1, len(a16) - Yamnet.SAMPLES + 1), 16_000):
+            s = self.yamnet.run(a16[i:i + Yamnet.SAMPLES])[0]
+            best = max(best, float(max(s[k] for k in PEOPLE)))
+        return best
+
+    def recheck_public(self) -> int:
+        """Judges again the saved bird recordings that were kept off the public page; returns how many may go now."""
+        import soundfile as sf
+
+        ok = 0
+        for e, folder in self.store.recordings_to_recheck():
+            try:
+                x, rate = sf.read(str(folder / e["clip"]), dtype="float32")
+            except Exception:  # noqa: BLE001
+                continue
+            if x.ndim > 1:
+                x = x.mean(axis=1)
+            if rate != 48_000:
+                x = np.interp(np.linspace(0, len(x) - 1, int(len(x) * 48_000 / rate)), np.arange(len(x)), x).astype(np.float32)
+            if self._people(x) < PEOPLE_MAX:
+                self.store.mark_public(e)
+                ok += 1
+        return ok
 
     def analyze(self, window: np.ndarray, at: int, before: np.ndarray | None = None, after: np.ndarray | None = None) -> None:
         audio16 = dsp.decimate48to16(window)
