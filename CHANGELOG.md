@@ -8,6 +8,13 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.22.1 - 2026-10-18
+
+- Dodatek HA: YAMNet używany po kolei przez analizę na żywo i ponowną ocenę nagrań (blokada); wcześniej
+  `POST /api/clips/recheck` w trakcie nasłuchu kończył się błędem interpretera TFLite.
+- Modele i czcionki przenoszone z poprzedniej wersji zamiast pobierania ok. 80 MB przy każdej aktualizacji: po
+  aktualizacji rozpoznawanie rusza od razu.
+
 ## 0.22.0 - 2026-10-18
 
 - Strona publiczna: **nagranie przy każdym wpisie** ptaka i dźwięku okolicy (9 s, MP3), tak jak w HA, a nie jedno

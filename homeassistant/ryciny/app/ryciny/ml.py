@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import threading
 import datetime as dt
 from dataclasses import dataclass
 
@@ -78,6 +79,7 @@ class Yamnet:
 
     def __init__(self, assets: Assets) -> None:
         self.model = Interpreter(str(assets.path("yamnet.tflite")))
+        self.lock = threading.Lock()
         inp = self.model.get_input_details()[0]
         self.model.resize_tensor_input(inp["index"], [self.SAMPLES])
         self.model.allocate_tensors()
@@ -88,6 +90,8 @@ class Yamnet:
             self.classes = [row["display_name"] for row in csv.DictReader(f)]
 
     def run(self, chunk: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        self.model.set_tensor(self.model.get_input_details()[0]["index"], chunk.astype(np.float32))
-        self.model.invoke()
-        return self.model.get_tensor(self._scores)[0], self.model.get_tensor(self._embedding)[0]
+        # One interpreter, used by live analysis and by the panel's recheck: one call at a time.
+        with self.lock:
+            self.model.set_tensor(self.model.get_input_details()[0]["index"], chunk.astype(np.float32))
+            self.model.invoke()
+            return self.model.get_tensor(self._scores)[0].copy(), self.model.get_tensor(self._embedding)[0].copy()

@@ -31,6 +31,9 @@ FILES = {
 }
 
 
+STABLE = (".tflite", ".ttf", ".csv", ".txt")
+
+
 class Assets:
     def __init__(self, data: Path, checkout: Path | None) -> None:
         self.dir = data / "assets" / __version__
@@ -40,6 +43,12 @@ class Assets:
         if self.checkout is not None:
             return self.checkout / FILES[name]
         target = self.dir / name
+        if not target.exists() and name.endswith(STABLE):
+            # Models and fonts do not change between versions: move them over instead of 80 MB of downloads.
+            old = sorted(p for p in self.dir.parent.glob(f"*/{name}") if p.parent != self.dir)
+            if old:
+                self.dir.mkdir(parents=True, exist_ok=True)
+                old[-1].replace(target)
         if not target.exists():
             self.dir.mkdir(parents=True, exist_ok=True)
             url = RAW.format(version=__version__, path=FILES[name])
