@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Aegithalos caudatus",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "a8a70c09ac3be9fa57f017d5b6216a4bce7a1ea3dbec7c0075c8157f7df0ae17",
+  "source_sha256": "447b325c95160e9a5a2f9ade78a5ab17914072705883a8fa711236d3b558cc53",
+  "version": 1
+}

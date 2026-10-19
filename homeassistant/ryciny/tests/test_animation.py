@@ -128,6 +128,11 @@ def test_provider_error_and_real_checked_in_packs(tmp_path: Path, monkeypatch: p
     expected = {
         ("BIRD", "Turdus merula"), ("DOG", "Kundel średni"), ("PLANE", "C208-plain"),
         ("PLANE", "E75S-LOT"), ("SCENE", "bells"), ("SCENE", "mower"), ("SCENE", "music"),
+        ("BIRD", "Aegithalos caudatus"), ("BIRD", "Anas platyrhynchos"),
+        ("BIRD", "Ardea cinerea"), ("BIRD", "Buteo buteo"),
+        ("BIRD", "Columba palumbus"), ("BIRD", "Dendrocopos major"),
+        ("BIRD", "Erithacus rubecula"), ("BIRD", "Hirundo rustica"),
+        ("BIRD", "Pica pica"), ("BIRD", "Upupa epops"),
     }
     found = set()
     for path in sorted(PACK_ROOT.glob("*/*")):

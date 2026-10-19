@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Pica pica",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "0ea3188282789b6fdfd4a3695ab5f9e02e8b44a5e66f4624f60c48422af9b138",
+  "source_sha256": "6ddd4c23f3a550177a6eb5a1c4ef78ce9d3b47d845a74fbe8e9f8c8424579fd6",
+  "version": 1
+}

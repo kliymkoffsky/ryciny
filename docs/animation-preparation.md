@@ -5,9 +5,10 @@ The paper, captions, layout, and static-device outputs remain unchanged. Playbac
 and generation are separate. The browser and Docker build never call an image
 model. Missing or invalid bundles use the still image.
 
-## Shipped pack
+## Original seven-atlas pack
 
-The repository ships seven generated atlases and seven prepared bundles:
+The repository ships seven generated atlases and seven prepared bundles from the
+original pack:
 
 | atlas | exact binding |
 | --- | --- |
@@ -24,7 +25,31 @@ in [`docs/animation-atlases/catalog.json`](animation-atlases/catalog.json).
 `moving-images.gif` is the review montage. The canonical prompt is
 `homeassistant/ryciny/app/ryciny/animation-prompt.txt`.
 
-![Seven prepared animations](animation-atlases/moving-images.gif)
+![Original seven prepared animations](animation-atlases/moving-images.gif)
+
+## Pack 3: ten canonical bird atlases
+
+The third pack adds ten prepared bundles bound to the exact BirdNET scientific
+keys used by the bird journal:
+
+| atlas | exact binding |
+| --- | --- |
+| `pack-3/aegithalos-caudatus.png` | `BIRD / Aegithalos caudatus` |
+| `pack-3/anas-platyrhynchos.png` | `BIRD / Anas platyrhynchos` |
+| `pack-3/ardea-cinerea.png` | `BIRD / Ardea cinerea` |
+| `pack-3/buteo-buteo.png` | `BIRD / Buteo buteo` |
+| `pack-3/columba-palumbus.png` | `BIRD / Columba palumbus` |
+| `pack-3/dendrocopos-major.png` | `BIRD / Dendrocopos major` |
+| `pack-3/erithacus-rubecula.png` | `BIRD / Erithacus rubecula` |
+| `pack-3/hirundo-rustica.png` | `BIRD / Hirundo rustica` |
+| `pack-3/pica-pica.png` | `BIRD / Pica pica` |
+| `pack-3/upupa-epops.png` | `BIRD / Upupa epops` |
+
+[Review montage for pack 3](animation-atlases/pack-3/moving-images.gif)
+contains these ten new atlases. [Pack 3 attribution](animation-atlases/pack-3/ATTRIBUTION.md)
+records the canonical restoration and selected historical plate for each item.
+Each catalog entry retains the upstream reference URL and both the raw
+reference and prepared PNG hashes.
 
 Each runtime pack contains `original.png`, `manifest.json`, and six authored
 red, green, blue, and alpha frames under `frames/000.png` through `frames/005.png`. The closing pose is

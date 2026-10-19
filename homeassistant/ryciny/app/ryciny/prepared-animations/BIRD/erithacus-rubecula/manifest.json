@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Erithacus rubecula",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "47eb3c4c377b6fcd9e58a0ad12bdef06d199ae7cdfd0dae5dbe26f1af3c18121",
+  "source_sha256": "d24ce9cb8d92bafc5769eba5eb45fb06f66d4dc986f711894202aba3af2b58a8",
+  "version": 1
+}
