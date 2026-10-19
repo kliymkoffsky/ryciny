@@ -151,6 +151,7 @@ h2{font-weight:400;font-size:24px;border-bottom:1px solid var(--rule);margin:34p
 .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
 .filters button{font:inherit;font-size:16px;background:none;border:1px solid var(--rule);color:var(--ink);padding:2px 12px;border-radius:14px;cursor:pointer}
 .filters button.on{background:var(--ink);color:var(--paper)}
+.filters .pause{margin-left:12px;border-style:dashed}
 .filters button:disabled{opacity:.35;cursor:default}
 .plate .nav{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:-6px 0 8px;font-size:15px}
 .arrow{font:inherit;font-size:16px;background:none;border:1px solid var(--rule);color:var(--ink);padding:2px 12px;border-radius:14px;cursor:pointer}
@@ -229,8 +230,20 @@ const moving = (a, cls) => '<div class="' + cls + ' anim" role="img" style="aspe
 // The big plate moves all the time; small engravings stay still and move only under the pointer (the strip
 // is loaded then, not with the page).
 let frame = 0;
+// The pause button at the top: kept in this browser only.
+let paused = false;
+try { paused = localStorage.getItem('ryciny-paused') === '1'; } catch (e) {}
+function togglePause() {
+  paused = !paused;
+  try { localStorage.setItem('ryciny-paused', paused ? '1' : '0'); } catch (e) {}
+  pauseLabel();
+}
+function pauseLabel() {
+  const b = document.getElementById('pause');
+  if (b) { b.textContent = paused ? '▶ animacje' : '❚❚ zatrzymaj animacje'; b.setAttribute('aria-pressed', paused ? 'true' : 'false'); }
+}
 setInterval(() => {
-  if (still.matches || document.hidden) return;
+  if (paused || still.matches || document.hidden) return;
   frame = (frame + 1) % 6;
   document.querySelectorAll('.big.anim, .anim.hover').forEach(el => el.style.backgroundPosition = (frame * 20) + '% 0');
 }, 180);
@@ -250,7 +263,7 @@ const rowOf = el => el && el.closest && el.closest('.top li, .row');
 document.addEventListener('pointerover', e => {
   const row = rowOf(e.target);
   const img = row && row.querySelector('img[data-anim]');
-  if (!img || still.matches) return;
+  if (!img || still.matches || paused) return;
   const div = document.createElement('div');
   div.className = 'anim hover';
   div.style.cssText = 'width:' + img.style.width + ';height:' + img.style.height + ';background-image:url(anim?id=' + img.dataset.anim + ')';
@@ -381,8 +394,10 @@ function render() {
   const hm = Math.max(1, ...hours);
   $('#hours').innerHTML = hours.map((v, h) => '<div title="' + h + ':00 · ' + v + '×" style="height:' + (100 * v / hm) + '%"></div>').join('');
 
-  $('#filters').innerHTML = FILTERS.map(([k, l]) => '<button class="' + (k === filter ? 'on' : '') + '" data-f="' + k + '">' + l + '</button>').join('');
-  $('#filters').querySelectorAll('button').forEach(b => b.onclick = () => {
+  $('#filters').innerHTML = FILTERS.map(([k, l]) => '<button class="' + (k === filter ? 'on' : '') + '" data-f="' + k + '">' + l + '</button>').join('') +
+    (state.animations && Object.keys(state.animations).length ? '<button id="pause" class="pause" onclick="togglePause()"></button>' : '');
+  pauseLabel();
+  $('#filters').querySelectorAll('button[data-f]').forEach(b => b.onclick = () => {
     filter = b.dataset.f; page = 0; shown = null;
     history.replaceState(null, '', location.pathname + (FILTERS.find(f => f[0] === filter)[2] ? '#' + FILTERS.find(f => f[0] === filter)[2] : ''));
     render();
