@@ -141,6 +141,7 @@ h2{font-weight:400;font-size:24px;border-bottom:1px solid var(--rule);margin:34p
 .stat{background:var(--card);border:1px solid var(--rule);padding:10px;text-align:center}
 .stat b{display:block;font-size:30px;font-weight:600;color:var(--rubric)}
 .top{list-style:none;padding:0;margin:0;columns:2 260px}
+.top li,.row{cursor:default}
 .top li{break-inside:avoid;display:flex;align-items:center;gap:8px;margin:2px 0}
 .bar{height:8px;background:var(--rubric);opacity:.75}
 .hours{display:flex;align-items:flex-end;gap:2px;height:90px;border-bottom:1px solid var(--rule)}
@@ -236,8 +237,11 @@ const art = (kind, key, cls = 'thumb') => {
   if (cls === 'big') return moving(a, cls);
   return stillArt(kind, key, cls).replace('<img ', '<img data-anim="' + a.id + '" data-w="' + a.w + '" data-h="' + a.h + '" ');
 };
+// The whole row is the hover area: its engraving moves while the pointer is anywhere on the row.
+const rowOf = el => el && el.closest && el.closest('.top li, .row');
 document.addEventListener('pointerover', e => {
-  const img = e.target.closest && e.target.closest('img[data-anim]');
+  const row = rowOf(e.target);
+  const img = row && row.querySelector('img[data-anim]');
   if (!img || still.matches) return;
   const div = document.createElement('div');
   div.className = img.className + ' anim hover';
@@ -246,9 +250,9 @@ document.addEventListener('pointerover', e => {
   img.replaceWith(div);
 });
 document.addEventListener('pointerout', e => {
-  const div = e.target.closest && e.target.closest('.anim.hover');
-  if (!div || (e.relatedTarget && div.contains(e.relatedTarget))) return;
-  div.outerHTML = div.dataset.still;
+  const row = rowOf(e.target);
+  if (!row || (e.relatedTarget && row.contains(e.relatedTarget))) return;
+  row.querySelectorAll('.anim.hover').forEach(div => { div.outerHTML = div.dataset.still; });
 });
 const stillArt = (kind, key, cls = 'thumb') => '<img class="' + cls + '" loading="lazy" alt="" src="art?kind=' + kind + '&key=' + encodeURIComponent(key) + '" onerror="this.outerHTML=\\'<div class=&quot;' + cls + ' empty&quot;></div>\\'">';
 const FILTERS = [['all', 'wszystko', ''], ['birds', 'ptaki', 'ptaki'], ['planes', 'samoloty', 'samoloty'], ['sounds', 'dźwięki', 'dzwieki']];
