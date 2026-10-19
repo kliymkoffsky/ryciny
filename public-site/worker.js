@@ -38,14 +38,15 @@ export default {
         // A prepared animation: six frames side by side (64 hex id = the pack's content hash, so it never changes).
         const id = url.searchParams.get("id") || "";
         if (!/^[0-9a-f]{64}$/.test(id)) return new Response("id", { status: 400 });
-        await env.DATA.put(`anim:${id}`, await req.arrayBuffer());
+        // poster=1: frame one alone, the still for small engravings.
+        await env.DATA.put(url.searchParams.get("poster") === "1" ? `animp:${id}` : `anim:${id}`, await req.arrayBuffer());
         return Response.json({ ok: true });
       }
       if (path === "/ingest/has") {
         // What is already up, so the add-on uploads each engraving and recording only once even after a restart:
         // "KIND:key" for engravings, "clip:name" for recordings.
         const list = [];
-        for (const prefix of ["art:", "clip:", "anim:"]) {
+        for (const prefix of ["art:", "clip:", "anim:", "animp:"]) {
           let cursor;
           do {
             const page = await env.DATA.list({ prefix, cursor });
@@ -85,7 +86,7 @@ export default {
       const cache = caches.default;
       const hit = await cache.match(req);
       if (hit) return hit;
-      const value = await env.DATA.get(`anim:${id}`, { type: "arrayBuffer" });
+      const value = await env.DATA.get(url.searchParams.get("poster") === "1" ? `animp:${id}` : `anim:${id}`, { type: "arrayBuffer" });
       if (!value) return new Response("missing", { status: 404 });
       const res = new Response(value, { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=31536000, immutable" } });
       ctx.waitUntil(cache.put(req, res.clone()));
@@ -166,6 +167,8 @@ h2{font-weight:400;font-size:24px;border-bottom:1px solid var(--rule);margin:34p
 .anim{display:inline-block;vertical-align:middle}
 .big.anim{height:min(420px, 56vw);width:auto;max-width:100%}
 .thumb.anim{height:58px;width:auto;flex:none}
+.tbox{width:58px;height:58px;flex:none;display:inline-flex;align-items:center;justify-content:center}
+.tbox .still,.tbox .anim{mix-blend-mode:multiply;display:block}
 .thumb{width:58px;height:58px;object-fit:contain;flex:none;mix-blend-mode:multiply}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .thumb{mix-blend-mode:normal}}
 .thumb.empty{border:1px dashed var(--rule)}
@@ -231,11 +234,16 @@ setInterval(() => {
   frame = (frame + 1) % 6;
   document.querySelectorAll('.big.anim, .anim.hover').forEach(el => el.style.backgroundPosition = (frame * 20) + '% 0');
 }, 180);
+// A small engraving with an animation: frame one as the still, in a box of the frame's own proportions, so the
+// moving strip that replaces it on hover covers exactly the same pixels.
+const box = (a, side) => { const r = a.w / a.h; return r >= 1 ? [side, Math.round(side / r)] : [Math.round(side * r), side]; };
 const art = (kind, key, cls = 'thumb') => {
   const a = animOf(kind, key);
   if (!a) return stillArt(kind, key, cls);
   if (cls === 'big') return moving(a, cls);
-  return stillArt(kind, key, cls).replace('<img ', '<img data-anim="' + a.id + '" data-w="' + a.w + '" data-h="' + a.h + '" ');
+  const [w, h] = box(a, 58);
+  return '<span class="tbox"><img class="still" alt="" loading="lazy" src="anim?id=' + a.id + '&poster=1" style="width:' + w + 'px;height:' + h +
+    'px" data-anim="' + a.id + '"></span>';
 };
 // The whole row is the hover area: its engraving moves while the pointer is anywhere on the row.
 const rowOf = el => el && el.closest && el.closest('.top li, .row');
@@ -244,8 +252,8 @@ document.addEventListener('pointerover', e => {
   const img = row && row.querySelector('img[data-anim]');
   if (!img || still.matches) return;
   const div = document.createElement('div');
-  div.className = img.className + ' anim hover';
-  div.style.cssText = 'aspect-ratio:' + img.dataset.w + '/' + img.dataset.h + ';background-image:url(anim?id=' + img.dataset.anim + ')';
+  div.className = 'anim hover';
+  div.style.cssText = 'width:' + img.style.width + ';height:' + img.style.height + ';background-image:url(anim?id=' + img.dataset.anim + ')';
   div.dataset.still = img.outerHTML;
   img.replaceWith(div);
 });

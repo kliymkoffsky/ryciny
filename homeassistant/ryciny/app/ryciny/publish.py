@@ -8,11 +8,14 @@ after CLIP_DAYS.
 
 from __future__ import annotations
 
+import io
 import json
 import logging
 import time
 import urllib.parse
 import urllib.request
+
+from PIL import Image
 
 from . import stats
 from .store import local, now_ms
@@ -136,6 +139,15 @@ class Publisher:
                     continue
                 self._put("/ingest/anim?" + urllib.parse.urlencode({"id": pack.id}), sprite, "image/png")
                 self.sent.add(f"anim:{pack.id}")
+            if f"animp:{pack.id}" not in self.sent:
+                # The still for small engravings: exactly frame one, so hovering does not make the bird jump.
+                with Image.open(pack.frames[0]) as first:
+                    poster = first.convert("RGBA")
+                    poster.thumbnail((360, 360))
+                    buf = io.BytesIO()
+                    poster.save(buf, "PNG", optimize=True)
+                self._put("/ingest/anim?" + urllib.parse.urlencode({"id": pack.id, "poster": "1"}), buf.getvalue(), "image/png")
+                self.sent.add(f"animp:{pack.id}")
                 log.info("publish: animation %s %s", kind, key)
             anims[f"{kind}:{key}"] = {"id": pack.id, "w": pack.width, "h": pack.height, "ms": pack.frame_ms}
         state["animations"] = anims

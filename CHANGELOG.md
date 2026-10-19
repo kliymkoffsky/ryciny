@@ -8,6 +8,15 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.24.2 - 2026-10-19
+
+- Strona publiczna: na dużej rycinie animacja stale, przy statystykach i w Dzienniku tylko po najechaniu na
+  wiersz. Nieruchoma miniatura to pierwsza klatka animacji w polu o proporcjach klatki (dodatek wysyła ją osobno),
+  więc po najechaniu ptak nie przeskakuje, a wiersz się nie przesuwa. Pasek klatek pobiera się dopiero przy
+  najechaniu.
+- Wyłączone w dodatku dźwięki, które myli żagiel przeciwsłoneczny i karabińczyki: statek, wiatr, deszcz, świnia,
+  fajerwerki (ustawienia, nie kod).
+
 ## 0.24.1 - 2026-10-19
 
 - Animacje: dopasowanie paczki do ryciny także po pikselach. Skrót z bajtów PNG przekodowanego z WebP zależy od
