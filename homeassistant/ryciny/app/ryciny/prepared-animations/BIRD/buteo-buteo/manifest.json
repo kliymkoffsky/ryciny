@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Buteo buteo",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "d333a69bf7cc10d16f7f16ae2e3050a4c3eefe61757f89ca8e6aaefe23a9d17f",
+  "source_sha256": "3b44c502dc3e18850f7fea43fb842348124e2d5a7ec75eace998a66d3cefdc00",
+  "version": 1
+}

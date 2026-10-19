@@ -46,7 +46,7 @@ def test_catalog_subjects_through_runtime_and_immutable_atlas(tmp_path, monkeypa
     try:
         assert "javascript" in get("animation.js")[1]["Content-Type"]
         catalog = json.loads((REPO / "docs/animation-atlases/catalog.json").read_text())["examples"]
-        assert len(catalog) == len(app.animation_registry.bindings) == 7
+        assert len(catalog) == len(app.animation_registry.bindings) == 17
         for entry in catalog:
             kind, key, at = entry["kind"], entry["key"], now_ms()
             journal.update({name: [] for name in journal})

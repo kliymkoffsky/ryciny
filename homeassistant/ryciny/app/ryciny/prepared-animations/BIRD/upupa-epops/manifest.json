@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Upupa epops",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "a2d027d9a89277d2bc266d7addb5d6578c06430bb0f14a3425fd62748cb6bfe6",
+  "source_sha256": "ade5819c14fb4c508992a173cd08c04d778babcb227a5e37ed801320ca11a569",
+  "version": 1
+}

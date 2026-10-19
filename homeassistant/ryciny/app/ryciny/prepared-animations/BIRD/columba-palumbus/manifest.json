@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Columba palumbus",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "bc436d9ea812ed49e2146553c58e85ac7db734af4465b330eebdb0e9d201958f",
+  "source_sha256": "0c0205684cf7605f171073adf8d1395bf22160244590e3e409cb43354aa4a9db",
+  "version": 1
+}

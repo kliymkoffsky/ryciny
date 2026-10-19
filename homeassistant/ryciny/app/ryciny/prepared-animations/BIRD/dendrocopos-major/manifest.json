@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Dendrocopos major",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "5f574f761d79cf014f6a6c17dd5b0aff05e7def873c7afb19d74a29753cf49f0",
+  "source_sha256": "2558d501135299b0213d2d4c40b40cae5af253eeba701bcdde0e7dd96b384e4e",
+  "version": 1
+}

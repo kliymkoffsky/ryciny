@@ -63,12 +63,21 @@ lub niezgodny pakiet zachowuje zwykłą rycinę. `animation_playback` i
 `animation_generate` są domyślnie wyłączone; `INCLUDE_ANIMATIONS=0` pomija
 przygotowane zasoby w obrazie Dockera.
 
-W repozytorium jest siedem gotowych atlasów z dokładnymi wiązaniami:
+W repozytorium jest siedem wcześniejszych atlasów z dokładnymi wiązaniami:
 `DOG/Kundel średni`, `BIRD/Turdus merula`, `SCENE/bells`, `SCENE/mower`,
 `PLANE/C208-plain`, `SCENE/music` i `PLANE/E75S-LOT`. Arkusze, prompty,
 hashe źródeł i proweniencja dostawcy są w
 [docs/animation-preparation.md](docs/animation-preparation.md) oraz
 [docs/animation-atlases/catalog.json](docs/animation-atlases/catalog.json).
+[Stary montaż siedmiu atlasów](docs/animation-atlases/moving-images.gif) zachowuje
+ten pierwszy pakiet.
+
+Pakiet trzeci dodaje dziesięć atlasów ptaków z dokładnymi kluczami BirdNET:
+`BIRD/Aegithalos caudatus`, `BIRD/Anas platyrhynchos`, `BIRD/Ardea cinerea`,
+`BIRD/Buteo buteo`, `BIRD/Columba palumbus`, `BIRD/Dendrocopos major`,
+`BIRD/Erithacus rubecula`, `BIRD/Hirundo rustica`, `BIRD/Pica pica` i
+`BIRD/Upupa epops`. [Montaż nowego pakietu](docs/animation-atlases/pack-3/moving-images.gif)
+pokazuje te dziesięć atlasów.
 
 CLI planuje pracę lokalnie bez klucza i bez żądania sieciowego. `--generate`
 wykonuje jawne żądanie z kluczem, a `--sheet` importuje istniejący atlas.

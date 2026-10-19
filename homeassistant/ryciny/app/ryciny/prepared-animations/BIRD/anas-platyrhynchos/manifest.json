@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Anas platyrhynchos",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "ce775a886830073b2bf2d1e1c08188abc1e645bd4e7a426276cc8feeda6f4c11",
+  "source_sha256": "ab27caf04fa89ba06ac9ab525acffc2c655e96a3213b5d73113ee7beaf51a8f1",
+  "version": 1
+}

@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Ardea cinerea",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "b5e1092bd8afe0a96af56b9bd9c8a18e409ff78cc55b473898aa7cfe3b7c8727",
+  "source_sha256": "1b64eb2dbff0bee0e1ebf4d5514ce4db9762afab5f6750d4a3e2d722819f2347",
+  "version": 1
+}

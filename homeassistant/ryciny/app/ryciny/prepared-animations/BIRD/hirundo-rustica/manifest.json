@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Hirundo rustica",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "5b91b9476d8eb89c14221f2cb1c7e86c0d03e070f31c160853e92abd95400a6d",
+  "source_sha256": "6d908487c09754dfb8c793452f88c6e726dcbb788d2783329199d1139774cee0",
+  "version": 1
+}
