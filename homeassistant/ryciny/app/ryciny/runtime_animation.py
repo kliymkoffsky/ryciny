@@ -23,7 +23,10 @@ class PackRegistry:
     def __init__(self, data: Path, bundled: Path) -> None:
         self.bindings: dict[tuple[str, str], dict[str, animation.Pack | None]] = {}
         self.sprites: dict[str, Path] = {}
-        self.sources: dict[Path, tuple[tuple, str]] = {}
+        self.sources: dict[Path, tuple[tuple, str, str]] = {}
+        # Packs also by the pixels of their original: re-encoding a WebP to PNG gives different bytes under another
+        # Pillow or zlib (the add-on's container vs the machine that prepared the pack), the pixels stay the same.
+        self.by_pixels: dict[tuple[str, str], dict[str, animation.Pack]] = {}
         self.sprite_root = data / "animation-sprites"
         for root in (bundled, data / "animations"):
             if root.is_symlink() or not root.is_dir():
@@ -72,6 +75,10 @@ class PackRegistry:
                 temporary.unlink(missing_ok=True)
         self.sprites[pack.id] = target
         self.bindings[binding] = {**versions, pack.source_sha256: pack}
+        try:
+            self.by_pixels.setdefault(binding, {})[pixel_digest(pack.original)] = pack
+        except (OSError, ValueError):
+            pass
 
     def get(self, kind: str, key: str, source_sha256: str | None = None) -> animation.Pack | None:
         versions = self.bindings.get((kind, key), {})
@@ -89,14 +96,28 @@ class PackRegistry:
             cached = self.sources.get(source)
             if cached is None or cached[0] != signature:
                 digest = hashlib.sha256(animation.source_png(source)).hexdigest()
-                self.sources[source] = (signature, digest)
-            return self.get(kind, key, self.sources[source][1])
+                self.sources[source] = (signature, digest, pixel_digest(source))
+            _, digest, pixels = self.sources[source]
+            found = self.get(kind, key, digest)
+            if found is None:
+                pack = self.by_pixels.get((kind, key), {}).get(pixels)
+                # Only a pack that is still the one bound to its source: a conflict rejects it here too.
+                if pack is not None and self.bindings.get((kind, key), {}).get(pack.source_sha256) is pack:
+                    found = pack
+            return found
         except (OSError, ValueError):
             return None
 
     def atlas(self, pack_id: str) -> bytes | None:
         path = self.sprites.get(pack_id)
         return read_image(path, animation.MAX_OUTPUT_BYTES) if path is not None else None
+
+
+def pixel_digest(path: Path) -> str:
+    """SHA-256 of an image's decoded RGBA pixels and size: the same picture gives the same digest in any encoding."""
+    with Image.open(path) as image:
+        rgba = image.convert("RGBA")
+        return hashlib.sha256(f"{rgba.width}x{rgba.height}:".encode() + rgba.tobytes()).hexdigest()
 
 
 def read_image(path: Path, limit: int) -> bytes | None:

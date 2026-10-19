@@ -8,6 +8,12 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.24.1 - 2026-10-19
+
+- Animacje: dopasowanie paczki do ryciny także po pikselach. Skrót z bajtów PNG przekodowanego z WebP zależy od
+  wersji Pillow/zlib, więc w kontenerze HA żadna paczka nie pasowała, choć na komputerze autora pasowały.
+  Sprzeczne paczki dalej są odrzucane.
+
 ## 0.24.0 - 2026-10-19
 
 - **Ruchome ryciny** (PR #3, #4, #5, Paweł Klimkowski): przygotowane animacje, sześć klatek po 180 ms, dla 17

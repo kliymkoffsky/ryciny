@@ -192,3 +192,17 @@ def test_sequential_still_pipeline_keeps_source_versions_and_rejects_conflicts(t
     assert app.animation_registry.match("SCENE", "existing", source) is None
     assert not runtime_animation.prefetch_once(app, 0, 0)
     assert calls == ["existing", "new", "existing"]
+
+
+def test_pack_matches_by_pixels_when_png_bytes_differ(tmp_path):
+    """The add-on's Pillow may encode the converted PNG differently; the same pixels still find the pack."""
+    import io
+    from PIL import Image
+    from ryciny import runtime_animation
+    a = tmp_path / "a.png"
+    b = tmp_path / "b.png"
+    img = Image.new("RGBA", (40, 30), (10, 20, 30, 255))
+    img.save(a, compress_level=1)
+    img.save(b, compress_level=9, optimize=True)
+    assert a.read_bytes() != b.read_bytes()
+    assert runtime_animation.pixel_digest(a) == runtime_animation.pixel_digest(b)
