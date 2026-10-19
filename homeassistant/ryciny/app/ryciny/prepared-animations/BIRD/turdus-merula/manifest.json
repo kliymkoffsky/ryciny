@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "kind": "BIRD",
+  "key": "Turdus merula",
+  "source_sha256": "fc3cb35ed56ae2ec34ff2fde77fc7c17f0c8198b62fa1a9d9a03ea44c7d5f879",
+  "sheet_sha256": "07af8b152fe6aacabe80beac630ca8362a6a55402b234c99ee8a4bdb900e8ce5",
+  "provider": "openai-built-in-imagegen",
+  "model": null,
+  "frame_ms": 180
+}

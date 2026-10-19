@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "kind": "SCENE",
+  "key": "mower",
+  "source_sha256": "a29cd8f040ffda03a03e0a4bb68d0ea5003550045d6cac04671e271f60ed1795",
+  "sheet_sha256": "9cd7043a8969a5cef66ba33e180767a5a369b9fa749173f53f62dc8de759e114",
+  "provider": "openai-built-in-imagegen",
+  "model": null,
+  "frame_ms": 180
+}

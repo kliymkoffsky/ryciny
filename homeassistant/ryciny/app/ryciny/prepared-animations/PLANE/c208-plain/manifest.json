@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "kind": "PLANE",
+  "key": "C208-plain",
+  "source_sha256": "7c2748306e70999141ebb7cdde0ce8ece65b92ff4a0b75b03579f57a0c3e8394",
+  "sheet_sha256": "dfef490776ff39ca014bbaf895227bcc931b0664e45372b8ccdd31c9fcddad0b",
+  "provider": "openai-built-in-imagegen",
+  "model": null,
+  "frame_ms": 180
+}
