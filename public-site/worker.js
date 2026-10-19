@@ -151,6 +151,7 @@ h2{font-weight:400;font-size:24px;border-bottom:1px solid var(--rule);margin:34p
 .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
 .filters button{font:inherit;font-size:16px;background:none;border:1px solid var(--rule);color:var(--ink);padding:2px 12px;border-radius:14px;cursor:pointer}
 .filters button.on{background:var(--ink);color:var(--paper)}
+.note{text-align:center;color:var(--soft);font-style:italic;font-size:15px;margin:-4px 0 12px}
 .filters .pause{margin-left:12px;border-style:dashed}
 .filters button:disabled{opacity:.35;cursor:default}
 .plate .nav{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:-6px 0 8px;font-size:15px}
@@ -184,6 +185,7 @@ a{color:var(--rubric)}
   <h1>Dźwięki Dolnego Migowa</h1>
   <p class="sub">Gdańsk · mikrofon za oknem słucha ptaków, samolotów i okolicy · <span id="upd">…</span></p>
   <nav class="filters top" id="filters"></nav>
+  <p class="note" id="animNote" hidden>Niektóre ryciny są ruchome. Animacje są domyślnie zatrzymane; włączysz je przyciskiem <b>▶ włącz animacje</b> na górze.</p>
   <section class="plate" id="plate"><p class="soft">Wczytuję…</p></section>
 
   <h2>Statystyki</h2>
@@ -231,8 +233,9 @@ const moving = (a, cls) => '<div class="' + cls + ' anim" role="img" style="aspe
 // is loaded then, not with the page).
 let frame = 0;
 // The pause button at the top: kept in this browser only.
-let paused = false;
-try { paused = localStorage.getItem('ryciny-paused') === '1'; } catch (e) {}
+// Paused unless this browser switched animations on.
+let paused = true;
+try { paused = localStorage.getItem('ryciny-paused') !== '0'; } catch (e) {}
 function togglePause() {
   paused = !paused;
   try { localStorage.setItem('ryciny-paused', paused ? '1' : '0'); } catch (e) {}
@@ -240,7 +243,9 @@ function togglePause() {
 }
 function pauseLabel() {
   const b = document.getElementById('pause');
-  if (b) { b.textContent = paused ? '▶ animacje' : '❚❚ zatrzymaj animacje'; b.setAttribute('aria-pressed', paused ? 'true' : 'false'); }
+  if (b) { b.textContent = paused ? '▶ włącz animacje' : '❚❚ zatrzymaj animacje'; b.setAttribute('aria-pressed', paused ? 'true' : 'false'); }
+  const n = document.getElementById('animNote');
+  if (n) n.hidden = !(b && paused);
 }
 setInterval(() => {
   if (paused || still.matches || document.hidden) return;
