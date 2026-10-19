@@ -34,11 +34,18 @@ export default {
         await env.DATA.put(`clip:${name}`, await req.arrayBuffer(), { expirationTtl: ttl });
         return Response.json({ ok: true });
       }
+      if (path === "/ingest/anim") {
+        // A prepared animation: six frames side by side (64 hex id = the pack's content hash, so it never changes).
+        const id = url.searchParams.get("id") || "";
+        if (!/^[0-9a-f]{64}$/.test(id)) return new Response("id", { status: 400 });
+        await env.DATA.put(`anim:${id}`, await req.arrayBuffer());
+        return Response.json({ ok: true });
+      }
       if (path === "/ingest/has") {
         // What is already up, so the add-on uploads each engraving and recording only once even after a restart:
         // "KIND:key" for engravings, "clip:name" for recordings.
         const list = [];
-        for (const prefix of ["art:", "clip:"]) {
+        for (const prefix of ["art:", "clip:", "anim:"]) {
           let cursor;
           do {
             const page = await env.DATA.list({ prefix, cursor });
@@ -68,6 +75,19 @@ export default {
       if (!value) return new Response("missing", { status: 404 });
       const type = name.endsWith(".mp3") ? "audio/mpeg" : "audio/wav";
       const res = new Response(value, { headers: { "Content-Type": type, "Cache-Control": "public, max-age=86400" } });
+      ctx.waitUntil(cache.put(req, res.clone()));
+      return res;
+    }
+
+    if (path === "/anim") {
+      const id = url.searchParams.get("id") || "";
+      if (!/^[0-9a-f]{64}$/.test(id)) return new Response("id", { status: 400 });
+      const cache = caches.default;
+      const hit = await cache.match(req);
+      if (hit) return hit;
+      const value = await env.DATA.get(`anim:${id}`, { type: "arrayBuffer" });
+      if (!value) return new Response("missing", { status: 404 });
+      const res = new Response(value, { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=31536000, immutable" } });
       ctx.waitUntil(cache.put(req, res.clone()));
       return res;
     }
@@ -141,6 +161,10 @@ h2{font-weight:400;font-size:24px;border-bottom:1px solid var(--rule);margin:34p
 .d .play{width:26px;height:26px;font-size:12px;margin-left:4px;vertical-align:middle}
 .play.on{background:var(--rubric);color:var(--paper)}
 .row{display:flex;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule)}
+.anim{background-size:600% 100%;background-repeat:no-repeat;background-position:0 0;mix-blend-mode:multiply}
+.anim{display:inline-block;vertical-align:middle}
+.big.anim{height:min(420px, 56vw);width:auto;max-width:100%}
+.thumb.anim{height:58px;width:auto;flex:none}
 .thumb{width:58px;height:58px;object-fit:contain;flex:none;mix-blend-mode:multiply}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .thumb{mix-blend-mode:normal}}
 .thumb.empty{border:1px dashed var(--rule)}
@@ -193,7 +217,19 @@ const PL = 'pl-PL';
 const hhmm = t => new Date(t).toLocaleTimeString(PL, {hour: '2-digit', minute: '2-digit'});
 const day = t => { const d = new Date(t), n = new Date(); const y = new Date(n); y.setDate(n.getDate() - 1);
   return d.toDateString() === n.toDateString() ? 'dziś' : d.toDateString() === y.toDateString() ? 'wczoraj' : d.toLocaleDateString(PL, {day: 'numeric', month: 'short'}); };
-const art = (kind, key, cls = 'thumb') => '<img class="' + cls + '" loading="lazy" alt="" src="art?kind=' + kind + '&key=' + encodeURIComponent(key) + '" onerror="this.outerHTML=\\'<div class=&quot;' + cls + ' empty&quot;></div>\\'">';
+// Moving engravings (prepared six-frame strips): a sprite stepped by one ticker; still images when motion is reduced.
+const still = matchMedia('(prefers-reduced-motion: reduce)');
+const animOf = (kind, key) => state && state.animations && state.animations[kind + ':' + key];
+const moving = (a, cls) => '<div class="' + cls + ' anim" role="img" style="aspect-ratio:' + a.w + '/' + a.h +
+  ';background-image:url(anim?id=' + a.id + ')"></div>';
+let frame = 0;
+setInterval(() => {
+  if (still.matches || document.hidden) return;
+  frame = (frame + 1) % 6;
+  document.querySelectorAll('.anim').forEach(el => el.style.backgroundPosition = (frame * 20) + '% 0');
+}, 180);
+const art = (kind, key, cls = 'thumb') => animOf(kind, key) ? moving(animOf(kind, key), cls) : stillArt(kind, key, cls);
+const stillArt = (kind, key, cls = 'thumb') => '<img class="' + cls + '" loading="lazy" alt="" src="art?kind=' + kind + '&key=' + encodeURIComponent(key) + '" onerror="this.outerHTML=\\'<div class=&quot;' + cls + ' empty&quot;></div>\\'">';
 const FILTERS = [['all', 'wszystko', ''], ['birds', 'ptaki', 'ptaki'], ['planes', 'samoloty', 'samoloty'], ['sounds', 'dźwięki', 'dzwieki']];
 const fromHash = () => (FILTERS.find(f => f[2] && '#' + f[2] === location.hash) || FILTERS[0])[0];
 let state = null, filter = fromHash(), page = 0;

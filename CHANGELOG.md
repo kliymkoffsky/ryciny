@@ -8,6 +8,17 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.24.0 - 2026-10-19
+
+- **Ruchome ryciny** (PR #3, #4, #5, Paweł Klimkowski): przygotowane animacje, sześć klatek po 180 ms, dla 17
+  tematów (10 ptaków, kos, pies, dwa samoloty, dzwony, kosiarka, gramofon). Animacja włącza się tylko wtedy, gdy
+  rycina na dysku jest tą samą, z której ją przygotowano (skrót obrazu); inaczej zostaje nieruchoma.
+  Odtwarzanie: panel HA (`animation_playback`), strona publiczna (dodatek wysyła pasek klatek raz, strona
+  przesuwa klatki; przy „ograniczeniu ruchu” w systemie stoją) i aplikacja w trybie Home Assistant (duża rycina
+  i podgląd w Dzienniku). Generowanie nowych animacji (`animation_generate`, płatne) zostaje wyłączone.
+- Dodatek: **dzienny limit płatnych rycin** (`art_daily_limit`, domyślnie 30, 0 = bez limitu), w panelu w
+  Ustawieniach; po wyczerpaniu kolejne ryciny czekają do jutra. Ryciny ptaków z fugleramme się nie liczą.
+
 ## 0.23.0 - 2026-10-18
 
 - The Frame: **tylko zwierzęta**. Rycina pokazuje najnowsze z: ptaków, zwierząt z dźwięków okolicy (kot, kogut, koń,

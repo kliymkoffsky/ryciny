@@ -28,6 +28,9 @@ configuration:
   public_token:
     name: Token strony publicznej
     description: Ten sam co sekret INGEST_TOKEN Workera.
+  art_daily_limit:
+    name: Dzienny limit generowanych rycin
+    description: Najwyżej tyle płatnych rycin (OpenAI, Gemini, OpenRouter) na dobę; 0 = bez limitu. Ptaki z fugleramme się nie liczą.
   mic_gain_db:
     name: Wzmocnienie mikrofonu (dB)
     description: Cichy mikrofon za oknem — samoloty rozpoznawane są dopiero od ok. -40 dB; zwykle 12–24 dB. Można też ustawiać w panelu.

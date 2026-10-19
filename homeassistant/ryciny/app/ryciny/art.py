@@ -76,6 +76,25 @@ class Art:
         self.no_plate: set[str] = set()
         self.error: str | None = None
 
+    def _spend(self) -> bool:
+        """Counts one paid picture against art_daily_limit; False when today's are used up (the credits stay safe)."""
+        limit = int(getattr(self.cfg, "art_daily_limit", 30) or 0)
+        if limit <= 0:
+            return True
+        f = self.cfg.data / "art_budget.json"
+        today = time.strftime("%Y-%m-%d")
+        try:
+            b = json.loads(f.read_text())
+        except (OSError, ValueError):
+            b = {}
+        if b.get("day") != today:
+            b = {"day": today, "count": 0}
+        if b["count"] >= limit:
+            return False
+        b["count"] += 1
+        f.write_text(json.dumps(b))
+        return True
+
     def _bird_key(self, sci: str) -> str:
         return slug(self.aliases.get(sci, sci))
 
@@ -134,6 +153,10 @@ class Art:
                 source = self.root / "source" / target.parent.name / target.name
                 if not source.exists():
                     if self.cfg.image_provider == "none" or self.failed.get("gen:" + key, 0) > time.time():
+                        return
+                    if not self._spend():
+                        self.error = f"Dzienny limit generowanych rycin ({self.cfg.art_daily_limit}) wyczerpany; kolejne jutro"
+                        self.failed["gen:" + key] = time.time() + RETRY_S
                         return
                     data = self._generate(self.prompt(kind, subject, airline, prompt), wide=kind == "PLANE")
                     if not data:

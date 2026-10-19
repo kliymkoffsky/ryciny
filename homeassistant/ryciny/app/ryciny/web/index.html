@@ -302,6 +302,7 @@ async function renderSettings() {
     <h2>Samoloty</h2>${slider('radius_km', 'Promień (km)', 3, 60, 1)}${slider('overhead_max_alt_m', '„Nad głową” poniżej (m)', 500, 12000, 250)}
     <h2>Pociągi</h2>${toggle('trains', 'Rozpoznawaj pociągi z rozkładu PKP PLK')}
     <h2>Rycina</h2>${slider('lookback_hours', 'Pokazuj ostatnie (godz.)', 1, 72, 1)}
+    ${slider('art_daily_limit', 'Najwyżej płatnych rycin na dobę (0 = bez limitu)', 0, 200, 5)}
     <label class="set">Generowanie rycin<select id="setting_image_provider" onchange="save({image_provider: this.value})">${['openai', 'gemini', 'openrouter', 'none'].map(p => `<option ${p === s.image_provider ? 'selected' : ''}>${p}</option>`).join('')}</select></label>
     <p class="soft">${s.providerReady ? 'Klucz dla wybranego dostawcy jest ustawiony.' : 'Brak klucza: wpisz go w konfiguracji dodatku (Ustawienia → Dodatki → Ryciny → Konfiguracja).'}</p>
     <h2>Animowana rycina</h2>

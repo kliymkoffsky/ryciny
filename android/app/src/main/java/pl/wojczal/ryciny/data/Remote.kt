@@ -166,6 +166,22 @@ class Remote(
         if (r.code == 200) json.decodeFromString(Stats.serializer(), String(r.body)) else null
     }.getOrNull()
 
+    /** A prepared six-frame animation of [kind]/[key] from the add-on (frames side by side), or null. */
+    suspend fun animation(cacheDir: File, kind: String, key: String): Animation? = runCatching {
+        val r = Http.exchange("GET", "$base/api/animation?kind=$kind&key=${URLEncoder.encode(key, "UTF-8")}")
+        if (r.code != 200) return@runCatching null
+        val o = json.parseToJsonElement(String(r.body)) as? JsonObject ?: return@runCatching null
+        val id = o.str("id") ?: return@runCatching null
+        val file = File(cacheDir, "animations/$id.png")
+        if (!file.exists()) {
+            val a = Http.exchange("GET", "$base/${o.str("atlas") ?: "api/animations/$id.png"}")
+            if (a.code != 200) return@runCatching null
+            file.parentFile?.mkdirs()
+            file.writeBytes(a.body)
+        }
+        Animation(file, (o.num("frameMs") ?: 180.0).toLong().coerceIn(60, 1000))
+    }.getOrNull()
+
     suspend fun clip(name: String, into: File, best: Boolean = false): File? {
         val r = Http.exchange("GET", "$base/api/${if (best) "best" else "clips"}/$name")
         if (r.code != 200) return null
@@ -207,3 +223,6 @@ class Remote(
         private const val TAG = "Remote"
     }
 }
+
+/** Six frames of [frameMs] each, side by side in [sprite] (the add-on's prepared animation). */
+data class Animation(val sprite: File, val frameMs: Long)

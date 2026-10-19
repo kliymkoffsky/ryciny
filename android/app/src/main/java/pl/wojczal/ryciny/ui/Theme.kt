@@ -5,9 +5,11 @@ import android.graphics.BitmapFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
@@ -42,6 +44,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import pl.wojczal.ryciny.R
 import pl.wojczal.ryciny.art.ArtRequest
@@ -140,13 +143,46 @@ fun Engraving(request: ArtRequest, height: Dp, modifier: Modifier = Modifier, pl
         value = file?.let { f -> withContext(Dispatchers.IO) { BitmapFactory.decodeFile(f.path)?.asImageBitmap() } }
     }
     val bmp = image
-    if (bmp != null) {
+    // In Home Assistant mode the add-on may have a prepared animation of this subject: six frames, played in a loop.
+    val graph = LocalContext.current.graph
+    val context = LocalContext.current
+    val moving by produceState<Pair<ImageBitmap, Long>?>(null, request.kind, request.key, graph.store.remote) {
+        value = if (!graph.store.remote) null else graph.remote.animation(context.cacheDir, request.kind.name, request.key)?.let { a ->
+            withContext(Dispatchers.IO) { BitmapFactory.decodeFile(a.sprite.path)?.asImageBitmap() }?.let { it to a.frameMs }
+        }
+    }
+    val anim = moving
+    if (anim != null && !reducedMotion()) {
+        val (sprite, frameMs) = anim
+        val frame by produceState(0, sprite) { while (true) { delay(frameMs); value = (value + 1) % 6 } }
+        val fw = sprite.width / 6
+        // Fit like the still image: the full height, the width from the frame's proportions, centred.
+        Box(modifier.height(height), contentAlignment = Alignment.Center) {
+            androidx.compose.foundation.Canvas(
+                Modifier.fillMaxHeight().aspectRatio(fw.toFloat() / sprite.height, matchHeightConstraintsFirst = true),
+            ) {
+                drawImage(
+                    sprite,
+                    srcOffset = androidx.compose.ui.unit.IntOffset(frame * fw, 0),
+                    srcSize = androidx.compose.ui.unit.IntSize(fw, sprite.height),
+                    dstSize = androidx.compose.ui.unit.IntSize(size.width.toInt(), size.height.toInt()),
+                )
+            }
+        }
+    } else if (bmp != null) {
         Image(bmp, contentDescription = request.subject, contentScale = ContentScale.Fit, modifier = modifier.height(height))
     } else {
         Box(modifier.height(height), contentAlignment = Alignment.Center) {
             Caption(placeholder, size = 14, color = InkSoft)
         }
     }
+}
+
+/** The system's "remove animations" setting: then engravings stay still. */
+@Composable
+private fun reducedMotion(): Boolean {
+    val resolver = LocalContext.current.contentResolver
+    return remember { android.provider.Settings.Global.getFloat(resolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f }
 }
 
 private val thumbs = android.util.LruCache<String, ImageBitmap>(120)

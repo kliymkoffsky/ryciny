@@ -87,6 +87,7 @@ class Publisher:
                 self._art(state)
                 self._clips(state)
                 self._best(state)
+                self._animations(state)
                 self._put("/ingest/state", json.dumps(state, ensure_ascii=False).encode(), "application/json")
                 version, self.error = self.app.store.version, None
             except Exception as e:  # noqa: BLE001 - try again next round
@@ -119,6 +120,25 @@ class Publisher:
             self._put("/ingest/clip?" + urllib.parse.urlencode({"name": name, "keep": "1"}), f.read_bytes(), "audio/mpeg" if f.suffix == ".mp3" else "audio/wav")
             self.sent.add(f"clip:{name}")
             log.info("publish: best clip %s %s", sci, name)
+
+    def _animations(self, state: dict) -> None:
+        """Moving engravings: each prepared six-frame strip goes up once; the state says which subject has one."""
+        wanted = [("BIRD", b["sci"]) for b in state["birds"]] + [("PLANE", p["art"]) for p in state["planes"]] + \
+                 [("SCENE", s["art"]) for s in state["sounds"]]
+        anims = {}
+        for kind, key in dict.fromkeys(wanted):
+            pack = self.app.animation_registry.match(kind, key, self.app.art.cached(kind, key))
+            if pack is None:
+                continue
+            if f"anim:{pack.id}" not in self.sent:
+                sprite = self.app.animation_registry.atlas(pack.id)
+                if sprite is None:
+                    continue
+                self._put("/ingest/anim?" + urllib.parse.urlencode({"id": pack.id}), sprite, "image/png")
+                self.sent.add(f"anim:{pack.id}")
+                log.info("publish: animation %s %s", kind, key)
+            anims[f"{kind}:{key}"] = {"id": pack.id, "w": pack.width, "h": pack.height, "ms": pack.frame_ms}
+        state["animations"] = anims
 
     def _art(self, state: dict) -> None:
         wanted = [("BIRD", b["sci"]) for b in state["birds"]] + [("PLANE", p["art"]) for p in state["planes"]] + \

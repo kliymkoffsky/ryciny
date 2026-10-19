@@ -157,3 +157,11 @@ def test_tv_plate_renders_4k_jpeg():
     jpeg = tvplate.render({"kind": "BIRD", "key": "Pica pica", "title": "Sroka", "lines": ["Pica pica", "ostatnio 12:00"]},
                           Image.new("RGBA", (300, 200), (0, 0, 0, 255)), "Sroka – ptak z rodziny krukowatych.", st, fonts)
     assert Image.open(io.BytesIO(jpeg)).size == (3840, 2160)
+
+
+def test_paid_engravings_stop_at_the_daily_limit(tmp_path):
+    from types import SimpleNamespace
+    from ryciny.art import Art
+    art = Art.__new__(Art)
+    art.cfg = SimpleNamespace(data=tmp_path, art_daily_limit=2)
+    assert [art._spend() for _ in range(3)] == [True, True, False]

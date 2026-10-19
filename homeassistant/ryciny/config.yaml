@@ -1,5 +1,5 @@
 name: Ryciny
-version: "0.23.0"
+version: "0.24.0"
 slug: ryciny
 description: Ptaki, psy, samoloty, pociągi i dźwięki okolicy jako XIX-wieczne ryciny. Słucha mikrofonu, aplikacja tylko wyświetla.
 url: https://github.com/qunabu/ryciny
@@ -62,6 +62,7 @@ schema:
     - str
   audio_command: str?
   mic_gain_db: float(0,36)?
+  art_daily_limit: int(0,1000)?
   frame_on: bool?
   frame_host: str?
   frame_every_min: int(1,120)?

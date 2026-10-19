@@ -43,6 +43,7 @@ class Config:
     frame_on: bool = False  # Samsung The Frame: send the TV plate (tvplate.py)
     frame_host: str = ""
     frame_every_min: int = 5
+    art_daily_limit: int = 30  # paid engravings a day at most (0 = no limit)
     mic_gain_db: float = 0.0  # a quiet microphone: YAMNet misses planes below about -40 dBFS
 
 
@@ -97,7 +98,7 @@ RUNTIME = {
     "bird_threshold": float, "range_filter": bool, "bark_threshold": float, "dog_match": float,
     "radius_km": float, "overhead_max_alt_m": int, "trains": bool, "sounds_off": list, "sounds_on": list,
     "image_provider": str, "lookback_hours": int, "mic_gain_db": float,
-    "frame_on": bool, "frame_host": str, "frame_every_min": int,
+    "frame_on": bool, "frame_host": str, "frame_every_min": int, "art_daily_limit": int,
     "animation_playback": bool, "animation_generate": bool, "animation_model": str,
 }
 
