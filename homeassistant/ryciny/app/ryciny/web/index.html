@@ -16,7 +16,19 @@ nav button{font:inherit;background:none;border:0;padding:12px 18px;color:var(--s
 nav button.on{color:var(--ink);border-bottom:2px solid var(--rubric)}
 main{max-width:1000px;margin:0 auto;padding:16px}
 .frame{border:1px solid rgba(43,33,24,.45);outline:1px solid rgba(43,33,24,.25);outline-offset:-6px;padding:18px;background:var(--paper)}
+.plate{position:relative}
 .plate img{width:100%;height:auto;display:block}
+.plate>img[hidden]{display:block;visibility:hidden}
+.plate-animation{position:absolute;inset:18px;overflow:hidden;pointer-events:none}
+.plate-animation[hidden]{display:none}
+.animation-background{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:fill}
+.animation-sprite{position:absolute;overflow:hidden}
+.animation-sprite__track{position:absolute;left:0;top:0;width:600%;height:100%;max-width:none;display:block;object-fit:fill;animation:none;transform:translateX(0)}
+.animation-sprite.is-playing .animation-sprite__track{animation:ryciny-sprite var(--animation-duration,900ms) steps(6,end) infinite}
+@keyframes ryciny-sprite{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+@media(prefers-reduced-motion:reduce){.animation-sprite__track{animation:none!important;transform:translateX(0)!important}}
+.plate-animation-toggle{display:block;margin:10px auto 0}
+#plateAnimationToggle[hidden]{display:none}
 .soft{color:var(--soft);font-style:italic}
 .live{text-align:center;margin:12px 0;color:var(--rubric);font-style:italic}
 h2{font-weight:normal;color:var(--rubric);margin:22px 0 8px}
@@ -29,6 +41,10 @@ h2{font-weight:normal;color:var(--rubric);margin:22px 0 8px}
 .thumb{width:64px;height:64px;object-fit:contain;flex:none}
 .thumb.empty{border:1px solid rgba(107,91,74,.3);transform:scale(.6)}
 div.thumb{display:block}
+.element-art{position:relative;display:block;overflow:hidden}
+.element-art__still{width:100%;height:100%;object-fit:contain}
+.element-art__motion{position:absolute;inset:0;display:block}
+.element-art [hidden]{display:none!important}
 button.act{font:inherit;font-size:16px;color:var(--rubric);background:none;border:0;cursor:pointer}
 label.set{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 0}
 input[type=range]{width:50%}
@@ -45,6 +61,7 @@ code{font-size:14px}
 .mic{text-align:center;margin:18px auto;max-width:520px}
 .meter{height:12px;border:1px solid var(--soft);margin:8px 0;background:#fff8}
 #meterBar{height:100%;width:0;background:var(--rubric);transition:width .4s}
+.settings-status.error{color:var(--rubric);font-style:normal}
 </style>
 </head>
 <body>
@@ -56,13 +73,17 @@ code{font-size:14px}
 </nav>
 <main>
   <section id="plate">
-    <div class="frame plate"><img id="plateImg" alt="Rycina"></div>
+    <div class="frame plate" id="plateSurface">
+      <img id="plateImg" alt="Rycina">
+      <div id="plateAnimation" class="plate-animation" role="img" aria-label="Rycina" hidden aria-hidden="true"></div>
+    </div>
+    <button class="act plate-animation-toggle" id="plateAnimationToggle" type="button" hidden>Odtwórz animację</button>
     <div class="live" id="live"></div>
     <div class="mic">
       <b>Test mikrofonu</b>
       <div class="meter"><div id="meterBar"></div></div>
       <span id="micDb" class="soft"></span>
-      <button class="act" id="micPlay" onclick="new Audio('api/mic.wav?t=' + Date.now()).play()">▶ Odsłuchaj ostatnie 3 s</button>
+      <button class="act" id="micPlay" data-audio-src="api/mic.wav">▶ Odsłuchaj ostatnie 3 s</button>
       <p class="soft" id="micHint"></p>
     </div>
   </section>
@@ -74,24 +95,51 @@ code{font-size:14px}
   <section id="stats" hidden></section>
 <section id="settings" hidden></section>
 </main>
+<script src="animation.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const api = (p, o) => fetch(p, o).then(r => r.ok ? r.json() : Promise.reject(r.status));
 const hhmm = t => new Date(t).toLocaleTimeString('pl-PL', {hour: '2-digit', minute: '2-digit'});
 const day = t => new Date(t).toLocaleDateString('pl-PL', {day: 'numeric', month: 'short'});
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
-let journal = null, sounds = {}, breeds = [], filter = 'all', version = -1;
+let journal = null, sounds = {}, breeds = [], filter = 'all', version = -1, animationRevision = -1;
+let tickInFlight = false;
+let settingsSaveTail = Promise.resolve();
+let pollTimer = null;
+
+const tryAnimation = new URLSearchParams(location.search).get('animation') !== 'off';
+const plateAnimation = new window.RycinyAnimation.Player({
+  container: $('#plateAnimation'),
+  staticImage: $('#plateImg'),
+  toggle: $('#plateAnimationToggle'),
+  endpoint: 'api/plate-animation?w=1600&h=900',
+  enabled: tryAnimation,
+  autoPlay: true,
+});
+const elementAnimations = new window.RycinyAnimation.Manager({
+  root: document, enabled: tryAnimation,
+});
 
 function show(tab) {
+  elementAnimations.stopAll();
   document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x.dataset.tab === tab));
   document.querySelectorAll('main section').forEach(s => s.hidden = s.id !== tab);
+  plateAnimation.setActive(tab === 'plate');
+  elementAnimations.setActive(tab !== 'plate');
+  if (tab === 'plate') tick();
   if (tab === 'settings') renderSettings().then(frameStatus);
   if (tab === 'stats') renderStats();
   history.replaceState(null, '', '#' + tab);
 }
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => show(b.dataset.tab));
+window.addEventListener('hashchange', () => {
+  const tab = location.hash.slice(1);
+  if (['plate', 'journal', 'stats', 'settings'].includes(tab)) show(tab);
+});
 
 async function tick() {
+  if (tickInFlight) return;
+  tickInFlight = true;
   try {
     const l = await api('api/live');
     $('#live').textContent = (l.live.listening ? '● nasłuch trwa' : '○ nasłuch wyłączony') +
@@ -102,25 +150,31 @@ async function tick() {
     $('#micDb').textContent = l.mic && l.mic.has ? `poziom ${db} dB, szczyt ${Math.round((l.mic.peak || 0) * 100)}%` : 'czekam na pierwsze 3 s nagrania…';
     $('#micHint').textContent = !l.mic || !l.mic.has ? '' : db < -60 ? 'Prawie cisza: sprawdź wejście w zakładce Audio dodatku i różowe gniazdo przejściówki.'
       : (l.mic.peak || 0) > 0.98 ? 'Przester: mikrofon za blisko hałasu albo za duże wzmocnienie.' : 'Sygnał dochodzi. Zagwiżdż albo klaśnij i odsłuchaj.';
-    if (l.version !== version) {
+    if (l.version !== version || (l.animationRevision || 0) !== animationRevision) {
       version = l.version;
-      $('#plateImg').src = 'api/plate.png?w=1600&h=900&v=' + version;
+      animationRevision = l.animationRevision || 0;
+      $('#plateImg').src = 'api/plate.png?w=1600&h=900&a=' + animationRevision + '&v=' + version;
+      plateAnimation.refresh();
       journal = await api('api/journal');
       renderJournal();
-    }
+      if (!$('#stats').hidden) renderStats();
+    } else if (!plateAnimation.ready && !$('#plate').hidden) plateAnimation.refresh();
   } catch (e) { $('#live').textContent = 'brak połączenia z dodatkiem'; }
+  finally { tickInFlight = false; }
 }
 
 function art(kind, key, subject, extra = '') {
   const cached = kind === 'BIRD' ? '' : '&cached=1';
-  return `<img class="thumb" loading="lazy" src="api/art?kind=${kind}&key=${encodeURIComponent(key)}&subject=${encodeURIComponent(subject)}${extra}${cached}" onerror="const d=document.createElement('div');d.className='thumb empty';this.replaceWith(d)">`;
+  return `<span class="thumb element-art" data-animation-kind="${esc(kind)}" data-animation-key="${esc(key)}"><img class="element-art__still" alt="" loading="lazy" src="api/art?kind=${kind}&key=${encodeURIComponent(key)}&subject=${encodeURIComponent(subject)}${extra}${cached}&a=${animationRevision}" onerror="this.hidden=true;this.parentElement.classList.add('empty')"><span class="element-art__motion" hidden></span></span>`;
 }
 
 // Recordings of what was detected (kept 14 days on the add-on's disk).
-const play = clip => clip ? `<button class="act" title="Odsłuchaj" onclick="new Audio('api/clips/${clip}').play()">▶</button>` : '';
+const play = (clip, best = false) => /^[0-9a-f]{8}\.(?:wav|mp3)$/.test(clip || '')
+  ? `<button class="act" title="${best ? 'Odsłuchaj najlepsze nagranie' : 'Odsłuchaj'}" aria-label="Odsłuchaj" data-audio-src="api/${best ? 'best' : 'clips'}/${clip}">▶</button>` : '';
 
 function renderJournal() {
   if (!journal) return;
+  elementAnimations.stopAll();
   const f = [['all', 'wszystko'], ['birds', 'ptaki'], ['dogs', 'psy'], ['planes', 'samoloty'], ['sounds', 'dźwięki']];
   $('#filters').innerHTML = f.map(([k, l]) => `<button class="${k === filter ? 'on' : ''}" data-f="${k}">${l}</button>`).join('');
   $('#filters').querySelectorAll('button').forEach(b => b.onclick = () => { filter = b.dataset.f; renderJournal(); });
@@ -150,6 +204,7 @@ function renderJournal() {
   $('#dogs').innerHTML = filter !== 'dogs' ? '' : journal.dogs.length === 0
     ? '<p class="soft">Rasy nie da się odczytać z samego szczekania. Przy szczekaniu naciśnij „Kto to?” i podaj imię i rasę psa: od tej pory dodatek rozpozna go sam.</p>'
     : journal.dogs.map(d => `<div class="row">${art('DOG', d.breed, d.breedEn)}<div class="t">${esc(d.name)}<div class="d">${esc(d.breed)} · próbek: ${d.samples.length}</div></div><button class="act" onclick="deleteDog('${d.id}')">Usuń</button></div>`).join('') + '<h2>Szczekania</h2>';
+  elementAnimations.refresh($('#journal'));
 }
 
 function mongrel(size) {
@@ -174,16 +229,69 @@ async function newDog(barkId) {
 }
 async function deleteDog(id) { await fetch('api/dogs/' + id, {method: 'DELETE'}); version = -1; tick(); }
 
+function setSettingsStatus(message, error = false) {
+  const element = $('#settingsStatus');
+  if (!element) return;
+  element.textContent = message || '';
+  element.classList.toggle('error', Boolean(error));
+}
+
+function animationGenerationMessage(state) {
+  if (state?.animationKeyReady) {
+    return 'Generowanie korzysta z klucza OpenAI ustawionego w konfiguracji dodatku.';
+  }
+  return 'Brak klucza OpenAI. Ustaw go w konfiguracji dodatku (Ustawienia → Dodatki → Ryciny → Konfiguracja). Zaznaczenie zostanie zapisane, ale generowanie animacji nie wykona płatnych wywołań.';
+}
+
+function syncSettingsControls(state) {
+  /*
+   * PUT returns the canonical runtime state; applying it to live controls keeps
+   * autosave safe when the backend normalizes or rejects a requested value.
+   */
+
+  if (!state || typeof state !== 'object') return;
+  Object.entries(state).forEach(([key, value]) => {
+    const input = document.getElementById('setting_' + key);
+    if (!input) return;
+    const stringValue = String(value ?? '');
+    if (input.tagName === 'SELECT' && !Array.from(input.options).some(option => option.value === stringValue)) {
+      const option = document.createElement('option');
+      option.value = stringValue;
+      option.textContent = 'Niestandardowy (' + stringValue + ')';
+      input.appendChild(option);
+    }
+    if (input.type === 'checkbox') input.checked = Boolean(value);
+    else input.value = stringValue;
+    const display = document.getElementById('v_' + key);
+    if (display) display.textContent = input.dataset.displayFormat === 'percent'
+      ? Math.round(Number(value) * 100) + '%'
+      : stringValue;
+  });
+  const generationStatus = $('#animationGenerationStatus');
+  if (generationStatus) generationStatus.textContent = animationGenerationMessage(state);
+}
+
+function applyAnimationPlayback(enabled) {
+  plateAnimation.setEnabled(enabled && tryAnimation);
+  elementAnimations.setEnabled(enabled && tryAnimation);
+  version = -1;
+  if (!$('#plate').hidden) tick();
+}
+
 async function renderSettings() {
   const s = await api('api/settings');
   const list = await api('api/sounds');
-  const slider = (k, label, min, max, step, fmt = v => v) =>
-    `<label class="set">${label}: <b id="v_${k}">${fmt(s[k])}</b><input type="range" min="${min}" max="${max}" step="${step}" value="${s[k]}" oninput="document.getElementById('v_${k}').textContent=(${fmt.toString()})(+this.value)" onchange="save({${k}: +this.value})"></label>`;
-  const toggle = (k, label) => `<label class="set">${label}<input type="checkbox" ${s[k] ? 'checked' : ''} onchange="save({${k}: this.checked})"></label>`;
   const pct = v => Math.round(v * 100) + '%';
+  const slider = (k, label, min, max, step, fmt = v => v) =>
+    `<label class="set">${label}: <b id="v_${k}">${fmt(s[k])}</b><input id="setting_${k}" data-display-format="${fmt === pct ? 'percent' : ''}" type="range" min="${min}" max="${max}" step="${step}" value="${s[k]}" oninput="document.getElementById('v_${k}').textContent=(${fmt.toString()})(+this.value)" onchange="save({${k}: +this.value})"></label>`;
+  const toggle = (k, label) => `<label class="set">${label}<input id="setting_${k}" type="checkbox" ${s[k] ? 'checked' : ''} onchange="save({${k}: this.checked})"></label>`;
+  const modelOptions = [['gpt-image-2.5-sunburst', 'Sunburst (gpt-image-2.5-sunburst)'], ['gpt-image-2.5-flare', 'Flare (gpt-image-2.5-flare)']];
+  const currentModel = String(s.animation_model || modelOptions[0][0]);
+  if (!modelOptions.some(([value]) => value === currentModel)) modelOptions.push([currentModel, 'Niestandardowy (' + currentModel + ')']);
   $('#settings').innerHTML = `
+    <p class="soft settings-status" id="settingsStatus" role="status" aria-live="polite"></p>
     <h2>Samsung The Frame</h2>${toggle('frame_on', 'Wysyłaj rycinę na telewizor')}
-    <label class="set">Adres IP telewizora<input value="${esc(s.frame_host || '')}" placeholder="np. 192.168.1.14" onchange="save({frame_host: this.value.trim()})"></label>
+    <label class="set">Adres IP telewizora<input id="setting_frame_host" value="${esc(s.frame_host || '')}" placeholder="np. 192.168.1.14" onchange="save({frame_host: this.value.trim()})"></label>
     ${slider('frame_every_min', 'Nie częściej niż co (min)', 1, 60, 1)}
     <p class="soft" id="frameStatus"></p>
     <p><button class="act" onclick="framePush()">Wyślij teraz</button> <button class="act" onclick="frameRestore()">Przywróć sztukę z telewizora</button> <a class="act" href="api/tv.jpg" target="_blank">Podgląd</a></p>
@@ -194,21 +302,56 @@ async function renderSettings() {
     <h2>Samoloty</h2>${slider('radius_km', 'Promień (km)', 3, 60, 1)}${slider('overhead_max_alt_m', '„Nad głową” poniżej (m)', 500, 12000, 250)}
     <h2>Pociągi</h2>${toggle('trains', 'Rozpoznawaj pociągi z rozkładu PKP PLK')}
     <h2>Rycina</h2>${slider('lookback_hours', 'Pokazuj ostatnie (godz.)', 1, 72, 1)}
-    <label class="set">Generowanie rycin<select onchange="save({image_provider: this.value})">${['openai', 'gemini', 'openrouter', 'none'].map(p => `<option ${p === s.image_provider ? 'selected' : ''}>${p}</option>`).join('')}</select></label>
+    <label class="set">Generowanie rycin<select id="setting_image_provider" onchange="save({image_provider: this.value})">${['openai', 'gemini', 'openrouter', 'none'].map(p => `<option ${p === s.image_provider ? 'selected' : ''}>${p}</option>`).join('')}</select></label>
     <p class="soft">${s.providerReady ? 'Klucz dla wybranego dostawcy jest ustawiony.' : 'Brak klucza: wpisz go w konfiguracji dodatku (Ustawienia → Dodatki → Ryciny → Konfiguracja).'}</p>
+    <h2>Animowana rycina</h2>
+    ${toggle('animation_playback', 'Odtwarzaj animacje')}
+    ${toggle('animation_generate', 'Generuj animacje dla istniejących i nowych rycin')}
+    <label class="set">Model generowania animacji<select id="setting_animation_model" onchange="save({animation_model: this.value})">${modelOptions.map(([value, label]) => `<option value="${esc(value)}" ${value === currentModel ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select></label>
+    <p class="soft" id="animationGenerationStatus">${esc(animationGenerationMessage(s))}</p>
+    <p class="soft">Główna rycina odtwarza animację automatycznie, gdy odtwarzanie jest włączone. Przy wyłączeniu animacji lub ograniczeniu ruchu pozostaje statyczna.</p>
     <h2>Dźwięki okolicy</h2><p class="soft">Wyłączone nie są zapisywane i znikają z ryciny i Dziennika.</p>
     ${list.map(x => `<label class="set">${esc(x.now)}<input type="checkbox" ${x.on ? 'checked' : ''} onchange="soundSwitch('${x.key}', this.checked)"></label>`).join('')}
     <h2>Na dashboardzie Home Assistant</h2>
-    <p class="soft">Rycina jest obrazem pod adresem <code>http://&lt;adres HA&gt;:8099/api/plate.png?w=1600&h=900</code>. Dodaj go jako kamerę (Ustawienia → Urządzenia → Dodaj integrację → Generic Camera, „Still image URL”) i połóż na dashboardzie kartą „Picture entity”. Ten panel jest też w bocznym menu jako „Ryciny”.</p>
+    <p class="soft">Pełny, animowany widok Ryciny działa w tym panelu webowym i w bocznym menu dodatku. Na dashboardzie Home Assistant możesz osadzić adres webowy dodatku w karcie „Webpage”/iframe; wymaga to osiągalności adresu i odpowiedniej konfiguracji osadzania w HA. Opcjonalnie adres <code>http://&lt;adres HA&gt;:8099/api/plate.png?w=1600&h=900</code> służy jako statyczny obraz dla Generic Camera/Picture entity. Samsung Art Mode również pozostaje statyczny.</p>
     <p class="soft">Dodatek ${esc(s.version)} · lokalizacja ${s.lat.toFixed(3)}, ${s.lon.toFixed(3)}</p>`;
+  syncSettingsControls(s);
 }
-async function save(values) { await api('api/settings', {method: 'PUT', body: JSON.stringify(values)}); version = -1; }
+
+function save(values) {
+  settingsSaveTail = settingsSaveTail.catch(() => null).then(async () => {
+    /*
+     * Serialize autosaves so a slower earlier PUT cannot overwrite a newer
+     * control state; every successful response remains the source of truth.
+     */
+
+    setSettingsStatus('Zapisywanie…');
+    try {
+      const state = await api('api/settings', {method: 'PUT', body: JSON.stringify(values)});
+      syncSettingsControls(state);
+      version = -1;
+      if (Object.prototype.hasOwnProperty.call(values, 'animation_playback')) {
+        const enabled = Object.prototype.hasOwnProperty.call(state || {}, 'animation_playback')
+          ? Boolean(state.animation_playback)
+          : Boolean(values.animation_playback);
+        applyAnimationPlayback(enabled);
+      }
+      setSettingsStatus('Ustawienia zapisane.');
+      return state;
+    } catch (error) {
+      try { syncSettingsControls(await api('api/settings')); } catch (_) { }
+      setSettingsStatus('Nie udało się zapisać ustawienia. Spróbuj ponownie.', true);
+      return null;
+    }
+  });
+  return settingsSaveTail;
+}
 async function soundSwitch(key, on) {
   const s = await api('api/settings');
   const off = new Set(s.sounds_off), onSet = new Set(s.sounds_on);
   if (on) { off.delete(key); onSet.add(key); } else { onSet.delete(key); off.add(key); }
-  await save({sounds_off: [...off], sounds_on: [...onSet]});
-  sounds[key].on = on;
+  const state = await save({sounds_off: [...off], sounds_on: [...onSet]});
+  if (state && sounds[key]) sounds[key].on = on;
 }
 
 (async () => {
@@ -216,8 +359,14 @@ async function soundSwitch(key, on) {
   (await api('api/sounds')).forEach(s => sounds[s.key] = s);
   show(['plate', 'journal', 'stats', 'settings'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'plate');
   tick();
-  setInterval(tick, 3000);
+  pollTimer = setInterval(tick, 3000);
 })();
+
+window.addEventListener('pagehide', () => {
+  if (pollTimer) clearInterval(pollTimer);
+  plateAnimation.dispose();
+  elementAnimations.dispose();
+});
 
 // Statystyki: the same numbers as the public page and the app (api/stats).
 async function renderStats() {
@@ -227,9 +376,10 @@ async function renderStats() {
   const conf = c => c != null ? `<div class="d">śr. pewność BirdNET ${pct(c)}</div>` : '';
   // The most confident recording of each species ever (kept for good), with its BirdNET score.
   const best = s.birds.best || {};
-  const bestLine = sci => best[sci] ? `<div class="d">najlepsze nagranie: ${pct(best[sci].conf)}, ${day(best[sci].at)} <button class="act" title="Odsłuchaj najlepsze nagranie" onclick="new Audio('api/best/${best[sci].clip}').play()">▶</button></div>` : '';
+  const bestLine = sci => best[sci] ? `<div class="d">najlepsze nagranie: ${pct(best[sci].conf)}, ${day(best[sci].at)} ${play(best[sci].clip, true)}</div>` : '';
   const bird = (sci, name) => `${art('BIRD', sci, sci)}<div class="t">${esc(name.charAt(0).toUpperCase() + name.slice(1))}${bestLine(sci)}`;
   const max = Math.max(1, ...s.birds.top.map(t => t.count)), hm = Math.max(1, ...s.birds.hours);
+  elementAnimations.stopAll();
   $('#stats').innerHTML = `
     <h2>Ptaki</h2><div class="stats">${stat(s.birds.today, 'gatunków dziś')}${stat(s.birds.week, 'gatunków w 7 dni')}${stat(s.birds.month, 'gatunków w 30 dni')}</div>
     <h2>Szansa usłyszenia teraz (${s.hour}:00–${s.hour + 1}:00)</h2>
@@ -247,6 +397,7 @@ async function renderStats() {
     <div class="hlab"><span>0:00</span><span>6:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div>
     <h2>Samoloty</h2><div class="stats">${stat(s.planes.today, 'usłyszanych dziś')}${stat(s.planes.week, 'w 7 dni')}${stat(s.planes.airlinesToday, 'linii lotniczych dziś')}</div>
     <h2>Dźwięki okolicy</h2><div class="stats">${stat(s.sounds.kindsToday, 'rodzajów dziś')}${stat(s.sounds.trainsToday, 'pociągów dziś')}${stat(s.sounds.week, 'zdarzeń w 7 dni')}</div>`;
+  elementAnimations.refresh($('#stats'));
 }
 
 async function frameStatus() {
