@@ -26,7 +26,11 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
       - run: pip install -r homeassistant/ryciny/app/requirements.txt pytest
       - run: python -m pytest -q homeassistant/ryciny/tests
+      - run: node --test homeassistant/ryciny/tests/animation.test.cjs
       - name: Docker build (amd64)
         run: docker build --build-arg BUILD_FROM=ghcr.io/home-assistant/amd64-base-debian:bookworm -t ryciny-ha homeassistant/ryciny

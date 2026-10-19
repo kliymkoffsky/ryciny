@@ -21,6 +21,9 @@ options:
   image_provider: openai
   openai_key: ""
   openai_model: gpt-image-1
+  animation_playback: false
+  animation_generate: false
+  animation_model: gpt-image-2.5-sunburst
   gemini_key: ""
   gemini_model: gemini-2.5-flash-image
   openrouter_key: ""
@@ -41,6 +44,9 @@ schema:
   image_provider: list(openai|gemini|openrouter|none)
   openai_key: password?
   openai_model: str
+  animation_playback: bool
+  animation_generate: bool
+  animation_model: str
   gemini_key: password?
   gemini_model: str
   openrouter_key: password?

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import base64
 import hashlib
 import json
 import logging
@@ -15,7 +16,7 @@ from PIL import Image
 
 from pathlib import Path
 
-from . import __version__, config, dsp, plate, stats, store, tvplate
+from . import __version__, animation, config, dsp, plate, runtime_animation, stats, store, tvplate
 from .frame import Frame
 
 # Sounds of animals (sounds.json keys): the only sounds the TV shows, besides birds and dogs.
@@ -27,8 +28,6 @@ WEB = Path(__file__).parent / "web"
 log = logging.getLogger(__name__)
 
 
-
-
 class App:
     def __init__(self, cfg, assets, store, sky, rails, art, live, listener=None) -> None:
         self.cfg, self.assets, self.store, self.sky, self.rails, self.art, self.live = cfg, assets, store, sky, rails, art, live
@@ -36,7 +35,92 @@ class App:
         self.frame = Frame(cfg, cfg.data / "frame.json")
         self.wiki = tvplate.Wiki(cfg.data)
         self.sounds = {s["key"]: s for s in json.loads(assets.text("sounds.json"))["sounds"]}
+        self.breeds = json.loads(assets.text("dog_breeds.json"))
         self.fonts = (str(assets.path("garamond.ttf")), str(assets.path("garamond_italic.ttf")))
+        self.animation_revision = 0
+        self._prefetch_epoch = 0
+        self.server = None
+        self._load_animations()
+
+    def current_plate(self) -> dict | None:
+        """Select one current plate for both the static background and animation descriptor."""
+
+        journal = self.store.snapshot()
+        current = plate.newest(journal, self.sounds, self.cfg.lookback_hours, self.sound_on)
+        dog = self.tv_dog(journal, self.cfg.lookback_hours)
+        return dog if dog and (current is None or dog["at"] > current["at"]) else current
+
+    def _load_animations(self) -> None:
+        """Load once at startup; generation registers only its newly published pack."""
+
+        fallback = Path(__file__).with_name("prepared-animations")
+        self.animation_registry = runtime_animation.PackRegistry(self.cfg.data, fallback)
+
+    _settings_changed = runtime_animation.settings_changed
+    prefetch_once = runtime_animation.prefetch_once
+    prefetch = runtime_animation.prefetch
+
+    @staticmethod
+    def _dimensions(query: dict, default: tuple[int, int], max_side: int = 4096) -> tuple[int, int]:
+        """Parse bounded output dimensions before rendering or encoding a background."""
+
+        try:
+            width, height = int(query.get("w", default[0])), int(query.get("h", default[1]))
+        except (TypeError, ValueError) as error:
+            raise ValueError("w and h must be integers") from error
+        if width < 1 or height < 1 or width > max_side or height > max_side or width * height > 16_000_000:
+            raise ValueError("w and h are outside the render limits")
+        return width, height
+
+    @staticmethod
+    def _placement(pack, width: int, height: int) -> list[int]:
+        """Match plate.render's engraving box so only the subject layer moves."""
+
+        scale = min(width * 0.64 / pack.width, height * 0.59 / pack.height)
+        drawn_width = max(1, round(pack.width * scale))
+        drawn_height = max(1, round(pack.height * scale))
+        return [round((width - drawn_width) / 2), round(height * 0.72 - drawn_height), drawn_width, drawn_height]
+
+    def animation_pack(self, kind: str, key: str) -> animation.Pack | None:
+        if not self.cfg.animation_playback:
+            return None
+        return self.animation_registry.match(kind, key, self.art.cached(kind, key))
+
+    def _animation_descriptor(self, pack, width: int, height: int, background: bool, current: dict | None = None) -> dict | None:
+        """Build the small worker-facing descriptor from one validated immutable pack."""
+
+        descriptor = {
+            "id": pack.id,
+            "subject": [pack.kind, pack.key],
+            "width": width,
+            "height": height,
+            "frameMs": pack.frame_ms,
+            "atlas": f"api/animations/{pack.id}.png",
+        }
+        if background:
+            if current is None or current["kind"] != pack.kind or current["key"] != pack.key:
+                return None
+            descriptor["placement"] = self._placement(pack, width, height)
+            body = plate.render(current, None, self.fonts, width, height)
+            descriptor["background"] = "data:image/png;base64," + base64.b64encode(body).decode("ascii")
+        return descriptor
+
+    def plate_animation_descriptor(self, width: int, height: int) -> dict | None:
+        """Return the selected plate's animation and blank fixed paper background."""
+
+        current = self.current_plate()
+        if current is None:
+            return None
+        pack = self.animation_pack(current["kind"], current["key"])
+        return self._animation_descriptor(pack, width, height, True, current) if pack is not None else None
+
+    def element_animation_descriptor(self, kind: str, key: str) -> dict | None:
+        """Return an exact-key thumbnail descriptor without rendering a plate background."""
+
+        pack = self.animation_pack(kind, key)
+        if pack is None:
+            return None
+        return self._animation_descriptor(pack, pack.width, pack.height, False)
 
     def sound_on(self, key: str) -> bool:
         s = self.sounds.get(key, {})
@@ -47,11 +131,10 @@ class App:
         return s.get("enabled", True)
 
     def wanted(self, since: int) -> list[tuple]:
-        """Engravings the journal needs for entries seen since [since]: heard planes, sounds that are on, barks."""
+        """Return exact still identities for observations seen since a bounded cursor."""
         j = self.store.snapshot()
         dogs = {d["id"]: d for d in j["dogs"]}
-        breeds = json.loads(self.assets.text("dog_breeds.json"))
-        out = []
+        out = [("BIRD", b["sci"], b["sci"], "", "") for b in j["birds"] if b["lastAt"] >= since]
         for p in j["planes"]:
             if p["heard"] and p["lastAt"] >= since:
                 key = f"{p.get('typeCode') or p['title']}-{p.get('airlineIcao') or p['airline'] or 'plain'}"
@@ -66,23 +149,9 @@ class App:
                 if d:
                     out.append(("DOG", d["breed"], d["breedEn"], "", ""))
                 else:
-                    m = breeds[{"mały": 0, "duży": 2}.get(b.get("size"), 1)]
+                    m = self.breeds[{"mały": 0, "duży": 2}.get(b.get("size"), 1)]
                     out.append(("DOG", m["pl"], m["en"], "", ""))
         return list(dict.fromkeys(out))
-
-    def prefetch(self) -> None:
-        """Orders each missing engraving once, right after the event, so the Journal shows it without anyone watching."""
-        since, version = now_ms() - self.cfg.lookback_hours * 3600_000, -1
-        while True:
-            time.sleep(5)
-            if self.store.version == version or not self.provider_ready():
-                continue
-            version, started = self.store.version, now_ms()
-            for kind, key, subject, airline, prompt in self.wanted(since):
-                if self.art.cached(kind, key) is None:
-                    log.info("art: ordering %s %s", kind, key)
-                    self.art.load(kind, key, subject, airline, prompt, wait=True)
-            since = started - 60_000
 
     # --- Samsung The Frame ---------------------------------------------------------------------------
 
@@ -123,9 +192,9 @@ class App:
         jpeg = tvplate.render(current, engraving, about, st, self.fonts, thumbs)
         return jpeg, identity, current["title"] if current else "cisza"
 
-    def tv_dog(self, j: dict) -> dict | None:
+    def tv_dog(self, j: dict, lookback_hours: int = 7 * 24) -> dict | None:
         """The newest bark of the last week as a plate: the dog by name if tagged, else a mongrel of its size."""
-        since = now_ms() - 7 * 86_400_000
+        since = now_ms() - lookback_hours * 3600_000
         barks = [b for b in j["barks"] if b["lastAt"] >= since]
         if not barks:
             return None
@@ -134,11 +203,10 @@ class App:
         if dog:
             key, subject, title = dog["breed"], dog["breedEn"], f"{dog['name']} szczekał"
         else:
-            breeds = json.loads(self.assets.text("dog_breeds.json"))
-            m = breeds[{"mały": 0, "duży": 2}.get(b.get("size"), 1)]
+            m = self.breeds[{"mały": 0, "duży": 2}.get(b.get("size"), 1)]
             key, subject, title = m["pl"], m["en"], "Szczekał pies" + (f", raczej {b['size']}" if b.get("size") not in (None, "?") else "")
         return {"kind": "DOG", "key": key, "subject": subject, "title": title, "at": b["at"],
-                "lines": [dog["breed"] if dog else "", f"{plate.hhmm(b['at'])} · {b['count']}×"]}
+                "lines": [line for line in (dog["breed"] if dog else "", f"{plate.hhmm(b['at'])} · {b['count']}×") if line]}
 
     def frame_loop(self) -> None:
         """Sends the TV plate when what is heard changes (at most every frame_every_min), and every 30 min for the statistics."""
@@ -158,7 +226,7 @@ class App:
         c = self.cfg
         return {"openai": c.openai_key, "gemini": c.gemini_key, "openrouter": c.openrouter_key}.get(c.image_provider, "") != ""
 
-    def serve(self) -> None:
+    def serve(self, host: str = "0.0.0.0") -> None:
         app = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -192,6 +260,8 @@ class App:
                 try:
                     if path in ("/", "/plate"):
                         return self._send(200, (WEB / "index.html").read_bytes(), "text/html; charset=utf-8", {"Cache-Control": "no-cache"})
+                    if path == "/animation.js":
+                        return self._send(200, (WEB / "animation.js").read_bytes(), "application/javascript; charset=utf-8", {"Cache-Control": "no-cache"})
                     m = re.fullmatch(r"/fonts/(garamond|garamond_italic)\.ttf", path)
                     if m:
                         return self._send(200, app.assets.path(m[1] + ".ttf").read_bytes(), "font/ttf", {"Cache-Control": "max-age=86400"})
@@ -201,7 +271,9 @@ class App:
                         return self._json(json.loads(app.assets.text("dog_breeds.json")))
                     if path == "/api/settings":
                         return self._json({**config.runtime(app.cfg), "lat": app.cfg.lat, "lon": app.cfg.lon,
-                                           "providerReady": app.provider_ready(), "version": __version__})
+                                           "providerReady": app.provider_ready(),
+                                           "animationKeyReady": bool(app.cfg.openai_key.strip()),
+                                           "version": __version__})
                     if path == "/api/health":
                         return self._json({"ok": True, "version": __version__})
                     if path == "/api/journal":
@@ -213,7 +285,8 @@ class App:
                         mic = {"db": app.live.level_db(), "peak": round(app.listener.peak, 3) if app.listener else 0,
                                "has": bool(app.listener and app.listener.last is not None)}
                         return self._json({"version": app.store.version, "live": app.live.json(), "sky": app.sky.state(),
-                                           "rails": app.rails.state(), "artError": app.art.error, "mic": mic})
+                                           "rails": app.rails.state(), "artError": app.art.error, "mic": mic,
+                                           "animationRevision": app.animation_revision})
                     if path == "/api/tv.jpg":
                         jpeg, _, _ = app.tv_plate(wait=False)
                         return self._send(200, jpeg, "image/jpeg", {"Cache-Control": "no-store"})
@@ -233,10 +306,31 @@ class App:
                         if last is None:
                             return self._json({"error": "jeszcze nic nie nagrano"}, 404)
                         return self._send(200, dsp.wav_bytes(last, 48_000, normalize=False), "audio/wav", {"Cache-Control": "no-store"})
+                    if path == "/api/plate-animation":
+                        try:
+                            width, height = app._dimensions(q, (1600, 900))
+                        except ValueError as error:
+                            return self._json({"error": str(error)}, 400)
+                        return self._json(app.plate_animation_descriptor(width, height), headers={"Cache-Control": "no-store"})
+                    if path == "/api/animation":
+                        kind, key = q.get("kind", ""), q.get("key", "")
+                        if (kind not in animation.KINDS or not key or len(key.encode("utf-8")) > animation.MAX_KEY_BYTES or
+                                any(ord(character) < 32 or ord(character) == 127 for character in key)):
+                            return self._json({"error": "kind and key are invalid"}, 400)
+                        return self._json(app.element_animation_descriptor(kind, key), headers={"Cache-Control": "no-store"})
+                    m = re.fullmatch(r"/api/animations/([0-9a-f]{64})\.png", path)
+                    if m:
+                        atlas = app.animation_registry.atlas(m[1])
+                        return self._send(200, atlas, "image/png", {"Cache-Control": "public, max-age=31536000, immutable"}) if atlas is not None else self._json({"error": "atlas not found"}, 404)
                     if path == "/api/art":
                         kind, key = q.get("kind", ""), q.get("key", "")
                         if kind not in ("BIRD", "PLANE", "DOG", "SCENE") or not key:
                             return self._json({"error": "kind and key required"}, 400)
+                        pack = app.animation_pack(kind, key)
+                        if pack is not None:
+                            poster = runtime_animation.read_image(pack.frames[0], animation.MAX_FRAME_BYTES)
+                            if poster is not None:
+                                return self._send(200, poster, "image/png", {"Cache-Control": "no-cache"})
                         if q.get("cached") == "1" and kind != "BIRD":
                             # Thumbnails: only what is already drawn; a paid picture is never ordered by scrolling.
                             found = app.art.cached(kind, key)
@@ -258,16 +352,22 @@ class App:
                         f = app.store.clips / m[1]
                         return self._send(200, f.read_bytes(), "audio/mpeg" if f.suffix == ".mp3" else "audio/wav") if f.exists() else self._json({"error": "no clip"}, 404)
                     if path == "/api/plate.png":
-                        w, h = int(q.get("w", 800)), int(q.get("h", 480))
+                        try:
+                            w, h = app._dimensions(q, (800, 480))
+                        except ValueError as error:
+                            return self._json({"error": str(error)}, 400)
                         palette = q.get("palette", "full")
-                        current = plate.newest(app.store.snapshot(), app.sounds, app.cfg.lookback_hours, app.sound_on)
-                        etag = '"' + hashlib.sha1(json.dumps([current, w, h, palette], sort_keys=True).encode()).hexdigest()[:16] + '"'
+                        current = app.current_plate()
+                        pack = app.animation_pack(current["kind"], current["key"]) if current else None
+                        identity = [current, w, h, palette, pack.id if pack else None, now_ms() // 60_000]
+                        etag = '"' + hashlib.sha1(json.dumps(identity, sort_keys=True).encode()).hexdigest()[:16] + '"'
                         if self.headers.get("If-None-Match") == etag:
                             return self._send(304, b"", "image/png", {"ETag": etag})
                         engraving = None
                         if current:
-                            f = app.art.load(current["kind"], current["key"], current["subject"], current.get("airline", ""),
-                                             current.get("prompt", ""), wait=False)
+                            f = pack.frames[0] if pack else app.art.load(
+                                current["kind"], current["key"], current["subject"], current.get("airline", ""),
+                                current.get("prompt", ""), wait=False)
                             engraving = Image.open(f) if f else None
                         body = plate.render(current, engraving, app.fonts, w, h, palette)
                         return self._send(200, body, "image/png", {"ETag": etag})
@@ -308,7 +408,18 @@ class App:
 
             def do_PUT(self):  # noqa: N802
                 if urllib.parse.urlparse(self.path).path.rstrip("/") == "/api/settings":
-                    return self._json(config.update(app.cfg, self._body()))
+                    try:
+                        body = self._body()
+                        with config.SETTINGS_LOCK:
+                            before = config.runtime(app.cfg)
+                            result = config.update(app.cfg, body)
+                            app._settings_changed(before, result)
+                        return self._json(result)
+                    except (TypeError, ValueError) as error:
+                        return self._json({"error": str(error)}, 400)
+                    except OSError:
+                        log.exception("saving runtime settings")
+                        return self._json({"error": "could not save settings"}, 500)
                 m = re.fullmatch(r"/api/dogs/([0-9a-f-]+)", urllib.parse.urlparse(self.path).path.rstrip("/"))
                 if not m:
                     return self._json({"error": "not found"}, 404)
@@ -328,6 +439,17 @@ class App:
                 app.store.delete_dog(m[1])
                 return self._json({"ok": True})
 
-        server = ThreadingHTTPServer(("0.0.0.0", self.cfg.port), Handler)
+        server = ThreadingHTTPServer((host, self.cfg.port), Handler)
+        server.daemon_threads = True
+        self.server = server
         log.info("Ryciny %s on :%d", __version__, self.cfg.port)
-        server.serve_forever()
+        try:
+            server.serve_forever()
+        finally:
+            server.server_close()
+
+    def stop(self) -> None:
+        """Stop an embedded test server without affecting production workers."""
+
+        if self.server is not None:
+            self.server.shutdown()
