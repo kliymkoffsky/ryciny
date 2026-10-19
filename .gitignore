@@ -2,3 +2,10 @@
 public-site/.wrangler/
 public-site/.dev.vars
 .env
+output/animations/
+.venv/
+__pycache__/
+.pytest_cache/
+output/animation-*/
+output/generated-animation*/
+output/prepared-animation*/

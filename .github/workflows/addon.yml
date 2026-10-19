@@ -1,12 +1,22 @@
-# The Home Assistant add-on: Python tests and a Docker build, on every change under homeassistant/.
+# Home Assistant add-on tests and a Docker build for app, asset, and preparation changes.
 name: Add-on
 
 on:
   pull_request:
-    paths: ["homeassistant/**", "shared/**"]
+    paths:
+      - "homeassistant/**"
+      - "shared/**"
+      - "tools/generate_animation.py"
+      - "docs/animation-atlases/**"
+      - "docs/animation-preparation.md"
   push:
     branches: [main]
-    paths: ["homeassistant/**", "shared/**"]
+    paths:
+      - "homeassistant/**"
+      - "shared/**"
+      - "tools/generate_animation.py"
+      - "docs/animation-atlases/**"
+      - "docs/animation-preparation.md"
 
 jobs:
   test:

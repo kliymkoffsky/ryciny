@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "kind": "DOG",
+  "key": "Kundel średni",
+  "source_sha256": "f761e2818552631ede72ef8803db052a311bc91bb53d290a60d2e79661cd1905",
+  "sheet_sha256": "ab2d17e5e47ab322f4cfb417759be73cb7eefb0df4b5ebe7155d9562425ea34a",
+  "provider": "openai-built-in-imagegen",
+  "model": null,
+  "frame_ms": 180
+}

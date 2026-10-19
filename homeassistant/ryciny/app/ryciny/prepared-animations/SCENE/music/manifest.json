@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "kind": "SCENE",
+  "key": "music",
+  "source_sha256": "1a5e75d01c70a35b90bfee4733cb0a3765c323e394274cea5657b94cf9b4eb43",
+  "sheet_sha256": "c06650b5c4fda20ec3b6dcbfde132dfc7fc499871ea606e2482d8ab92a7409f1",
+  "provider": "openai-built-in-imagegen",
+  "model": null,
+  "frame_ms": 180
+}

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "kind": "SCENE",
+  "key": "bells",
+  "source_sha256": "46e3e85438924e183a4c5749256d489d5ba0dc78f7a6159693ef0f8761913410",
+  "sheet_sha256": "8e5b948678e88b99ef51bbc193160f14c782f92440934d9f7ed2cb4e2278f8fb",
+  "provider": "openai-built-in-imagegen",
+  "model": null,
+  "frame_ms": 180
+}
