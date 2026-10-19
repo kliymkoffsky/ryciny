@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "kind": "PLANE",
+  "key": "E75S-LOT",
+  "source_sha256": "5cb22b25878336b4ee1648517caeb84d3f1884a3eaa77bdaeb89428c9c98ac6b",
+  "sheet_sha256": "ac9647753b804ee6010f030984368bf539b369ef2ebf9c4792e5977fb6da3a66",
+  "provider": "openai-built-in-imagegen",
+  "model": null,
+  "frame_ms": 180
+}

@@ -55,6 +55,32 @@ Same ryciny, tak jak zapisuje je aplikacja: wygenerowane raz, wycięte z tła i 
 | ![Gramofon](docs/ryciny/gramofon.png) | | |
 | Muzyka u sąsiadów | | |
 
+## Animowane interpretacje rycin (opcjonalne)
+
+Przeglądarka może odtwarzać przygotowane klatki w pętli, gdy rycina jest
+widoczna. Papier, podpisy i układ pozostają nieruchome, a wyłączenie animacji
+lub niezgodny pakiet zachowuje zwykłą rycinę. `animation_playback` i
+`animation_generate` są domyślnie wyłączone; `INCLUDE_ANIMATIONS=0` pomija
+przygotowane zasoby w obrazie Dockera.
+
+W repozytorium jest siedem gotowych atlasów z dokładnymi wiązaniami:
+`DOG/Kundel średni`, `BIRD/Turdus merula`, `SCENE/bells`, `SCENE/mower`,
+`PLANE/C208-plain`, `SCENE/music` i `PLANE/E75S-LOT`. Arkusze, prompty,
+hashe źródeł i proweniencja dostawcy są w
+[docs/animation-preparation.md](docs/animation-preparation.md) oraz
+[docs/animation-atlases/catalog.json](docs/animation-atlases/catalog.json).
+
+CLI planuje pracę lokalnie bez klucza i bez żądania sieciowego. `--generate`
+wykonuje jawne żądanie z kluczem, a `--sheet` importuje istniejący atlas.
+W trybie domyślnym `--output` nie jest potrzebne; jest wymagane z `--sheet` lub `--generate`.
+
+```bash
+python tools/generate_animation.py \
+  --source homeassistant/ryciny/app/ryciny/prepared-animations/DOG/kundel-sredni/original.png \
+  --kind DOG --key 'Kundel średni' \
+  --subject 'a medium-sized mixed-breed dog'
+```
+
 ## Sprzęt
 
 Zamówiony: mikrofon Primo EM272Z1 z przedłużaczem 4,5 m, który trafi do komputera z Home Assistant
@@ -163,6 +189,8 @@ pierwszym razie zezwól pilotem na „Ryciny”. „Podgląd” pokazuje, co pó
 z priorytetem dla samolotu z ostatniej godziny. Wyłączenie wysyłania przywraca to, co telewizor pokazywał wcześniej (jego sztukę, pokaz
 slajdów, rotację). Protokół jest ten sam,
 którego używają integracje Home Assistant ([samsungtvws](https://github.com/xchwarze/samsung-tv-ws-api)).
+Ta integracja przesyła statyczny JPEG. Animacje z panelu przeglądarkowego nie są
+odtwarzane w Art Mode.
 
 ## Home Assistant
 
