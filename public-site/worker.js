@@ -222,13 +222,34 @@ const still = matchMedia('(prefers-reduced-motion: reduce)');
 const animOf = (kind, key) => state && state.animations && state.animations[kind + ':' + key];
 const moving = (a, cls) => '<div class="' + cls + ' anim" role="img" style="aspect-ratio:' + a.w + '/' + a.h +
   ';background-image:url(anim?id=' + a.id + ')"></div>';
+// The big plate moves all the time; small engravings stay still and move only under the pointer (the strip
+// is loaded then, not with the page).
 let frame = 0;
 setInterval(() => {
   if (still.matches || document.hidden) return;
   frame = (frame + 1) % 6;
-  document.querySelectorAll('.anim').forEach(el => el.style.backgroundPosition = (frame * 20) + '% 0');
+  document.querySelectorAll('.big.anim, .anim.hover').forEach(el => el.style.backgroundPosition = (frame * 20) + '% 0');
 }, 180);
-const art = (kind, key, cls = 'thumb') => animOf(kind, key) ? moving(animOf(kind, key), cls) : stillArt(kind, key, cls);
+const art = (kind, key, cls = 'thumb') => {
+  const a = animOf(kind, key);
+  if (!a) return stillArt(kind, key, cls);
+  if (cls === 'big') return moving(a, cls);
+  return stillArt(kind, key, cls).replace('<img ', '<img data-anim="' + a.id + '" data-w="' + a.w + '" data-h="' + a.h + '" ');
+};
+document.addEventListener('pointerover', e => {
+  const img = e.target.closest && e.target.closest('img[data-anim]');
+  if (!img || still.matches) return;
+  const div = document.createElement('div');
+  div.className = img.className + ' anim hover';
+  div.style.cssText = 'aspect-ratio:' + img.dataset.w + '/' + img.dataset.h + ';background-image:url(anim?id=' + img.dataset.anim + ')';
+  div.dataset.still = img.outerHTML;
+  img.replaceWith(div);
+});
+document.addEventListener('pointerout', e => {
+  const div = e.target.closest && e.target.closest('.anim.hover');
+  if (!div || (e.relatedTarget && div.contains(e.relatedTarget))) return;
+  div.outerHTML = div.dataset.still;
+});
 const stillArt = (kind, key, cls = 'thumb') => '<img class="' + cls + '" loading="lazy" alt="" src="art?kind=' + kind + '&key=' + encodeURIComponent(key) + '" onerror="this.outerHTML=\\'<div class=&quot;' + cls + ' empty&quot;></div>\\'">';
 const FILTERS = [['all', 'wszystko', ''], ['birds', 'ptaki', 'ptaki'], ['planes', 'samoloty', 'samoloty'], ['sounds', 'dźwięki', 'dzwieki']];
 const fromHash = () => (FILTERS.find(f => f[2] && '#' + f[2] === location.hash) || FILTERS[0])[0];
