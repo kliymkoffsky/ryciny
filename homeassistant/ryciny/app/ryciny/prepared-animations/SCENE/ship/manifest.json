@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "ship",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "2c7479b73990b3d930a9234abe5f69f53f938553aa5a01dbeea9b13d50fe8433",
+  "source_sha256": "ed104fa01d807cd4d4f8e4b165bbc104aff79696baeba0ce5af189047755872d",
+  "version": 1
+}

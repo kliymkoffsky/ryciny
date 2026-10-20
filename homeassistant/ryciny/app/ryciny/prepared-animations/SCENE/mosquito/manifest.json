@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "mosquito",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "11e0bc7d1cd48cc87e29cc95b1f1fdfde3bdcc594ea358fd2992dc9afa89469d",
+  "source_sha256": "bf704f418abdf69179fa8c8b20f9c80852369da589085ddbb0ca434962c394e9",
+  "version": 1
+}

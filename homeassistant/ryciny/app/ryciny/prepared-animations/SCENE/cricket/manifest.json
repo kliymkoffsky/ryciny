@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "cricket",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "67aabd68c1ea40855790ec1de3a746e1f334988856c67377712bc51c9574e4fe",
+  "source_sha256": "e9ebb37b9550c4d2d7f1cc0c0e40a04eca1fb99c6312c48728a5dc2ad852a1b8",
+  "version": 1
+}
