@@ -14,6 +14,15 @@ configuration:
     name: Klucz Google Gemini
   openrouter_key:
     name: Klucz OpenRouter
+  animation_playback:
+    name: Play animations
+    description: Play prepared animation bundles over existing engravings. Playback uses cached assets and does not need an API key.
+  animation_generate:
+    name: Generate animations for existing and new engravings
+    description: Generate missing animation bundles with the OpenAI image API. Requires an OpenAI key and can incur usage charges.
+  animation_model:
+    name: Animation generation model
+    description: OpenAI image model ID used when animation generation is enabled.
   frame_on:
     name: Samsung The Frame
     description: Wysyłaj na telewizor rycinę tego, co słychać, z opisem i statystykami (Art Mode, 4K). Można też włączyć w panelu.

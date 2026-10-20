@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Cyanistes caeruleus",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "536285d3fe89579fa6b348db91838c803881d7ffb6d4124765f0e25528220c62",
+  "source_sha256": "edef9f322ac308561394102780ee8c83c5a6dfe5a76c23844972ef1a96c61364",
+  "version": 1
+}

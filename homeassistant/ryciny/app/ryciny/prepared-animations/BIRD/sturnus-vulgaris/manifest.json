@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Sturnus vulgaris",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "39f01e92588862af1626bb622bdab971ef10240568b13000deca9d484cc1a241",
+  "source_sha256": "4aba6185015a9a6927ac0692da7f3f205d9506220456979884f5498e0bf9edb2",
+  "version": 1
+}

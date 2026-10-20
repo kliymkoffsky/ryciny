@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Alcedo atthis",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "eda8176b44d0d92e2d6cd2d262142ba2dbb48ecff14592f981cf1d8fae936d6b",
+  "source_sha256": "15fc196fed9a32627515b1925d4445a063576621dbb3e91f306e4fdad024f409",
+  "version": 1
+}

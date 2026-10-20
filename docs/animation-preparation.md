@@ -57,6 +57,34 @@ not stored twice: playback returns to frame zero after frame five. The compact
 manifest records the exact kind and key, the original source digest, atlas
 sheet digest, provider, optional model, and `frame_ms: 180`.
 
+## Pack 4: ten canonical bird atlases
+
+The fourth pack adds ten prepared bundles for BirdNET scientific keys. The
+repository now contains 27 prepared bundles across the original pack and packs
+3 and 4.
+
+| atlas | exact binding |
+| --- | --- |
+| `pack-4/alcedo-atthis.png` | `BIRD / Alcedo atthis` |
+| `pack-4/ciconia-ciconia.png` | `BIRD / Ciconia ciconia` |
+| `pack-4/strix-aluco.png` | `BIRD / Strix aluco` |
+| `pack-4/parus-major.png` | `BIRD / Parus major` |
+| `pack-4/cyanistes-caeruleus.png` | `BIRD / Cyanistes caeruleus` |
+| `pack-4/passer-domesticus.png` | `BIRD / Passer domesticus` |
+| `pack-4/fringilla-coelebs.png` | `BIRD / Fringilla coelebs` |
+| `pack-4/carduelis-carduelis.png` | `BIRD / Carduelis carduelis` |
+| `pack-4/troglodytes-troglodytes.png` | `BIRD / Troglodytes troglodytes` |
+| `pack-4/sturnus-vulgaris.png` | `BIRD / Sturnus vulgaris` |
+
+[Review montage for pack 4](animation-atlases/pack-4/moving-images.gif) shows
+the ten new atlases. The feature builds on merged [PR #4](https://github.com/qunabu/ryciny/pull/4),
+[PR #3](https://github.com/qunabu/ryciny/pull/3), and
+[PR #5](https://github.com/qunabu/ryciny/pull/5).
+
+Each pack keeps the exact `BIRD` key used by BirdNET. The browser and Home
+Assistant clients use the cached six-frame bundle when exact key and source
+validation pass. They keep the still image when no compatible bundle exists.
+
 ## Prepare or generate
 
 The command-line tool plans work locally by default and makes no network request:
@@ -84,14 +112,39 @@ truth. Preparing or playing a checked-in pack does not call a provider.
 
 ## Runtime switches and fallbacks
 
-- `animation_playback` defaults to `false`.
-- `animation_generate` defaults to `false` and needs an OpenAI key.
-- `RYCINY_ANIMATION_PLAYBACK` is unset and overrides playback locally.
-- `RYCINY_ANIMATION_GENERATE` is unset and overrides generation locally.
-- `INCLUDE_ANIMATIONS` defaults to `1`. Set it to `0` to omit prepared assets.
+The Docker image includes prepared bundles by default. Runtime playback and
+generation stay off until the user enables them.
 
-Keep the still image when playback is off, the source digest changes, or a pack
-fails validation. Static-only platforms keep their existing image paths. Android,
-e-ink, and Samsung The Frame do not use these browser packs. The browser uses the
-exact `kind` and `key`. It never infers a nearby key from a picture. Generation is
-opt-in and does not run during playback or image caching.
+**Settings matrix**
+
+- **Playback**: `animation_playback` / `Odtwarzaj animacje`. Off by default. Cached frames need no key or rebuild.
+- **Generation**: `animation_generate` / `Generuj animacje dla istniejących i nowych rycin`. Off by default. A non-empty `Klucz OpenAI` lets the worker dispatch paid requests.
+- **Model**: `animation_model` / `Model generowania animacji`. Defaults to `gpt-image-2.5-sunburst`. It applies only to generation.
+- **Assets**: `INCLUDE_ANIMATIONS`. Defaults to `1`. `0` or `false` omits bundles. This advanced setting needs a rebuild.
+
+For normal activation, open the add-on panel and select `Ustawienia`. Under
+`Animowana rycina`, turn on `Odtwarzaj animacje`. The setting saves immediately.
+Cached playback does not need an API key and does not need a rebuild.
+
+For generation, set `Klucz OpenAI` in the add-on configuration. Then enable
+`Generuj animacje dla istniejących i nowych rycin` and select
+`Model generowania animacji`. The background worker dispatches only when the
+switch is on and the key is non-empty. Enabling the switch without a key does no
+paid work.
+
+Use `INCLUDE_ANIMATIONS=0` only when an advanced Docker build must omit prepared
+assets. The values `true` and `false` are also accepted. This flag does not
+enable playback. The startup variables
+`RYCINY_ANIMATION_PLAYBACK`, `RYCINY_ANIMATION_GENERATE`, and
+`RYCINY_ANIMATION_MODEL` override the corresponding settings for that process.
+
+The Home Assistant API emits animation descriptors only when
+`animation_playback` is on. The public-site exporter publishes prepared
+descriptors independently. Its viewer starts paused and stores local browser
+opt-in.
+
+The Android client in Home Assistant mode follows the API descriptor gate.
+Standalone Android keeps its still-image path. Generic Camera, Picture entity,
+e-ink, and Samsung The Frame outputs remain static. Keep the still image when no
+compatible pack exists or a pack fails validation. The exact `kind` and `key`
+identify a bundle. The runtime never infers a nearby key from a picture.

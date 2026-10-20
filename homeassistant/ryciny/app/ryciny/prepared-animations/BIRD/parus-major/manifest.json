@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Parus major",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "4456c04f199dbae76f834770a0eb05db273f6442918cdb18f20fbc5ae29064d2",
+  "source_sha256": "6c608297511874468fb311421b64887589d04efe95b97e8e4321e8aec9cc2272",
+  "version": 1
+}

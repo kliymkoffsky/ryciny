@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Strix aluco",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "c294c9d8c88730b691e88fa7316d05342e2bceece8e86f6f3f8cde2465351ad5",
+  "source_sha256": "4f70ba1ff237ff46ba408c1a675c844f95c0e5be39c1042b3b90d648b6171f98",
+  "version": 1
+}

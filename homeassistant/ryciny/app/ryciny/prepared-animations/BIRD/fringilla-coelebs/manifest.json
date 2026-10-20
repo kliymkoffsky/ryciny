@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Fringilla coelebs",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "11c2ba2b59b92d62a9604928546e366264a221ec433a8f165b3954cc05f41762",
+  "source_sha256": "0765b112d1ad252ada030293f7f18522f41ab9da69df800086226e165eb15bf2",
+  "version": 1
+}

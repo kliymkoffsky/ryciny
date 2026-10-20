@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Ciconia ciconia",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "c56b03cbbaa219efdd494d718f0dcbd64f12dfcc03565be28dee0d74948c571b",
+  "source_sha256": "de19727d468a9aa7ce262387f7cb50fbfe1e4388c6d7d469874374a8e164cced",
+  "version": 1
+}

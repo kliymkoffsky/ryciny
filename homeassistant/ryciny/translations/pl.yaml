@@ -14,6 +14,15 @@ configuration:
     name: Klucz Google Gemini
   openrouter_key:
     name: Klucz OpenRouter
+  animation_playback:
+    name: Odtwarzaj animacje
+    description: Odtwarzaj przygotowane pakiety animacji na istniejących rycinach. Odtwarzanie używa zapisanych zasobów i nie wymaga klucza API.
+  animation_generate:
+    name: Generuj animacje dla istniejących i nowych rycin
+    description: Generuj brakujące pakiety animacji przez API obrazów OpenAI. Wymaga klucza OpenAI i może powodować koszty użycia.
+  animation_model:
+    name: Model generowania animacji
+    description: Identyfikator modelu obrazów OpenAI używanego po włączeniu generowania animacji.
   frame_on:
     name: Samsung The Frame
     description: Wysyłaj na telewizor rycinę tego, co słychać, z opisem i statystykami (Art Mode, 4K). Można też włączyć w panelu.

@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Passer domesticus",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "2494e22ba8c3cc187bda37f52a08400c9f7ba8725a142746feca7ac3566b6beb",
+  "source_sha256": "21d3aa0260327e03f8b984a4e86cab3cdb7a2faebaaac938b132014f91e4ab43",
+  "version": 1
+}

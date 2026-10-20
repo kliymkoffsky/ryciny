@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Carduelis carduelis",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "ad7037c05764fb84068075321d32f0e32183c97ff3195221382668e5cd11e765",
+  "source_sha256": "1d85c4c140a31e1a3f364e08f21e159dcd9ea6c8468d733f5a0c436e98e4f5f6",
+  "version": 1
+}
