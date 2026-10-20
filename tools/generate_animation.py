@@ -16,6 +16,8 @@ APP_ROOT = REPOSITORY_ROOT / "homeassistant" / "ryciny" / "app"
 if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
 
+from ryciny.animation_outlines import OutlineStore  # noqa: E402
+from ryciny.sticker_renderer import StickerError  # noqa: E402
 from ryciny.animation import (  # noqa: E402
     AnimationError,
     DEFAULT_MODEL,
@@ -37,6 +39,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--motion", default="", help="Optional activity instruction.")
     parser.add_argument("--model", default=DEFAULT_MODEL, help="OpenAI image model.")
     parser.add_argument("--output", type=Path, help="New pack destination for --sheet or --generate.")
+    parser.add_argument("--outline-cache", type=Path, default=REPOSITORY_ROOT / "output" / "animation-outlines",
+                        help="Persistent derived pack cache; raw --output remains unchanged.")
     parser.add_argument("--sheet", type=Path, help="Existing six-cell atlas to prepare without a provider call.")
     parser.add_argument("--generate", action="store_true", help="Send one request using OPENAI_API_KEY.")
     return parser
@@ -67,6 +71,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.output is None:
             raise SystemExit("--output is required with --sheet or --generate")
+        if args.output.exists() or args.output.is_symlink():
+            raise FileExistsError(f"output already exists: {args.output}")
         if args.sheet is not None:
             pack = prepare_atlas(
                 args.source,
@@ -96,9 +102,12 @@ def main(argv: list[str] | None = None) -> int:
                     key=args.key,
                     model=args.model,
                 )
-        _print({"path": str(pack.path), "id": pack.id, "kind": pack.kind, "key": pack.key})
+        raw = pack
+        pack = OutlineStore(args.outline_cache).ensure(raw)
+        _print({"path": str(pack.path), "id": pack.id, "kind": pack.kind, "key": pack.key,
+                "raw_path": str(raw.path), "raw_id": raw.id})
         return 0
-    except (AnimationError, FileExistsError, OSError) as error:
+    except (AnimationError, StickerError, FileExistsError, OSError) as error:
         print(f"generate_animation: {error}", file=sys.stderr)
         return 2
 

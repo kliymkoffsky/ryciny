@@ -61,6 +61,14 @@ The add-on can play six cached frames over an existing engraving. Paper, caption
 and layout stay fixed. Fresh installations start with playback and generation off.
 Existing saved choices stay in effect after an upgrade.
 
+Prepared frames include sticker backing in a warm paper color made by a separate
+Python post-processing pass. The add-on automatically prepares missing outlined
+versions when it loads packs or finishes generating new frames, then reuses the
+saved result. Each border follows its own frame's silhouette. Raw frames, source
+originals, and generation metadata stay intact; validated receipts prevent
+repeated application.
+See [Add sticker backing](docs/animation-preparation.md#add-sticker-backing).
+
 ![Pack 5 review montage](docs/animation-atlases/pack-5/moving-images.gif)
 
 Pack 5 adds ten everyday sound-scene bundles and brings the repository to 37
@@ -117,7 +125,8 @@ Generic Camera, Picture entity, and e-ink keep still output. Samsung The Frame
 uses its existing still Art Mode output.
 
 The public-site exporter publishes prepared descriptors independently. Its viewer
-starts paused and enables animation only after local browser opt-in. See the
+enables motion by default, remembers an explicit pause, and respects reduced
+motion. Miniatures animate on hover and while their recording plays. See the
 [full preparation guide](docs/animation-preparation.md) for runtime fallbacks,
 generation details, and platform boundaries.
 

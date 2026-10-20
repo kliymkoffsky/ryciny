@@ -13,7 +13,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from . import animation, config
+from . import animation, animation_outlines, config
 from .store import now_ms
 
 log = logging.getLogger(__name__)
@@ -28,6 +28,12 @@ class PackRegistry:
         # Pillow or zlib (the add-on's container vs the machine that prepared the pack), the pixels stay the same.
         self.by_pixels: dict[tuple[str, str], dict[str, animation.Pack]] = {}
         self.sprite_root = data / "animation-sprites"
+        self.outlines: animation_outlines.OutlineStore | None = None
+        try:
+            self.outlines = animation_outlines.OutlineStore(data / "animation-outlines")
+        except (OSError, ValueError):
+            log.exception("animation outlines unavailable; retaining still-image fallback")
+            return
         for root in (bundled, data / "animations"):
             if root.is_symlink() or not root.is_dir():
                 continue
@@ -44,6 +50,10 @@ class PackRegistry:
                         log.warning("animation pack skipped: %s", path)
 
     def add(self, pack: animation.Pack) -> None:
+        # Ingestion owns preparation. Descriptor and atlas reads only use validated cached outputs.
+        if self.outlines is None:
+            raise ValueError("animation outline preparation is unavailable")
+        pack = self.outlines.ensure(pack)
         # A source can have one authored animation; conflicting copies must not win by filename.
         binding = (pack.kind, pack.key)
         versions = self.bindings.get(binding, {})

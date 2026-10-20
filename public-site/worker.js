@@ -94,10 +94,11 @@ export default {
     }
 
     if (path === "/art") {
+      const kind = url.searchParams.get("kind"), key = url.searchParams.get("key");
+      if (!ART_KINDS.has(kind) || !key) return new Response("kind and key", { status: 400 });
       const cache = caches.default;
       const hit = await cache.match(req);
       if (hit) return hit;
-      const kind = url.searchParams.get("kind"), key = url.searchParams.get("key");
       const { value, metadata } = await env.DATA.getWithMetadata(`art:${kind}:${key}`, { type: "arrayBuffer" });
       if (!value) return new Response("missing", { status: 404, headers: { "Cache-Control": "public, max-age=300" } });
       const res = new Response(value, {
@@ -124,9 +125,9 @@ const PAGE = `<!doctype html>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-:root{--paper:#f3ead8;--ink:#2b2118;--soft:#7a6a58;--rubric:#9b3a26;--rule:#2b211833;--card:#fbf6ea}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#1f1a14;--ink:#efe4cf;--soft:#b3a48c;--rubric:#e08b6f;--rule:#efe4cf33;--card:#2a231b}}
-:root[data-theme="dark"]{--paper:#1f1a14;--ink:#efe4cf;--soft:#b3a48c;--rubric:#e08b6f;--rule:#efe4cf33;--card:#2a231b}
+:root{--paper:#f3ead8;--ink:#2b2118;--soft:#7a6a58;--rubric:#9b3a26;--rule:#2b211833;--card:#fbf6ea;--art-blend:multiply}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#1f1a14;--ink:#efe4cf;--soft:#b3a48c;--rubric:#e08b6f;--rule:#efe4cf33;--card:#2a231b;--art-blend:normal}}
+:root[data-theme="dark"]{--paper:#1f1a14;--ink:#efe4cf;--soft:#b3a48c;--rubric:#e08b6f;--rule:#efe4cf33;--card:#2a231b;--art-blend:normal}
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font:18px/1.45 "EB Garamond",Georgia,serif}
 main{max-width:860px;margin:0 auto;padding:22px 16px 60px}
@@ -134,8 +135,9 @@ h1{font-weight:400;text-align:center;font-size:34px;margin:6px 0 0}
 .sub{text-align:center;color:var(--soft);font-style:italic;margin:0 0 18px}
 h2{font-weight:400;font-size:24px;border-bottom:1px solid var(--rule);margin:34px 0 10px;padding-bottom:4px}
 .plate{background:var(--card);border:1px solid var(--rule);outline:1px solid var(--rule);outline-offset:-8px;padding:22px 18px;text-align:center}
-.plate img{max-width:100%;max-height:420px;object-fit:contain;mix-blend-mode:multiply}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .plate img{mix-blend-mode:normal}}
+.plate img{max-width:100%;max-height:420px;object-fit:contain;mix-blend-mode:var(--art-blend)}
+.bigbox{display:inline-block;max-width:100%;max-height:420px;vertical-align:middle}
+.bigbox>.big{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain}
 .plate .t{font-size:30px;margin-top:8px}
 .plate .l{color:var(--soft);font-style:italic}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
@@ -151,28 +153,28 @@ h2{font-weight:400;font-size:24px;border-bottom:1px solid var(--rule);margin:34p
 .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
 .filters button{font:inherit;font-size:16px;background:none;border:1px solid var(--rule);color:var(--ink);padding:2px 12px;border-radius:14px;cursor:pointer}
 .filters button.on{background:var(--ink);color:var(--paper)}
-.note{text-align:center;color:var(--soft);font-style:italic;font-size:15px;margin:-4px 0 12px}
-.filters .pause{margin-left:12px;border-style:dashed}
+.filters .pause{margin-left:6px;border-radius:50%;width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center}
 .filters button:disabled{opacity:.35;cursor:default}
 .plate .nav{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:-6px 0 8px;font-size:15px}
 .arrow{font:inherit;font-size:16px;background:none;border:1px solid var(--rule);color:var(--ink);padding:2px 12px;border-radius:14px;cursor:pointer}
 .arrow:disabled{opacity:.3;cursor:default}
 .top a,.row a{color:inherit;text-decoration-color:var(--rule)}
 .pager{margin-top:14px;justify-content:center;align-items:center}
-.filters.top{position:sticky;top:0;z-index:2;background:var(--paper);justify-content:center;padding:8px 0;margin:0 0 12px;border-bottom:1px solid var(--rule)}
+.filters.top{position:sticky;top:0;z-index:2;background:var(--paper);justify-content:center;padding:8px 0;margin:0 0 12px;border-bottom:1px solid var(--rule);gap:4px;flex-wrap:nowrap}
+.filters.top button{padding-left:4px;padding-right:4px}
+.filters.top .pause{margin-left:0}
 .play{font:inherit;font-size:16px;background:none;border:1px solid var(--rule);color:var(--rubric);border-radius:50%;width:34px;height:34px;cursor:pointer;flex:none;margin-left:auto}
 .top li .play{margin-left:8px;width:30px;height:30px;font-size:13px}
 .d .play{width:26px;height:26px;font-size:12px;margin-left:4px;vertical-align:middle}
 .play.on{background:var(--rubric);color:var(--paper)}
 .row{display:flex;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule)}
-.anim{background-size:600% 100%;background-repeat:no-repeat;background-position:0 0;mix-blend-mode:multiply}
+.anim{background-size:600% 100%;background-repeat:no-repeat;background-position:0 0;mix-blend-mode:var(--art-blend)}
 .anim{display:inline-block;vertical-align:middle}
-.big.anim{height:min(420px, 56vw);width:auto;max-width:100%}
 .thumb.anim{height:58px;width:auto;flex:none}
 .tbox{width:58px;height:58px;flex:none;display:inline-flex;align-items:center;justify-content:center}
-.tbox .still,.tbox .anim{mix-blend-mode:multiply;display:block}
-.thumb{width:58px;height:58px;object-fit:contain;flex:none;mix-blend-mode:multiply}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .thumb{mix-blend-mode:normal}}
+.tbox .still,.tbox .anim{mix-blend-mode:var(--art-blend);display:block}
+.plate img[data-anim],.tbox .still[data-anim],.tbox .anim,.big.anim{mix-blend-mode:normal}
+.thumb{width:58px;height:58px;object-fit:contain;flex:none;mix-blend-mode:var(--art-blend)}
 .thumb.empty{border:1px dashed var(--rule)}
 .d{color:var(--soft);font-style:italic;font-size:15px}
 .soft{color:var(--soft)}
@@ -185,7 +187,6 @@ a{color:var(--rubric)}
   <h1>Dźwięki Dolnego Migowa</h1>
   <p class="sub">Gdańsk · mikrofon za oknem słucha ptaków, samolotów i okolicy · <span id="upd">…</span></p>
   <nav class="filters top" id="filters"></nav>
-  <p class="note" id="animNote" hidden>Niektóre ryciny są ruchome. Animacje są domyślnie zatrzymane; włączysz je przyciskiem <b>▶ włącz animacje</b> na górze.</p>
   <section class="plate" id="plate"><p class="soft">Wczytuję…</p></section>
 
   <h2>Statystyki</h2>
@@ -220,66 +221,210 @@ a{color:var(--rubric)}
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+const ART_KINDS = new Set(['BIRD', 'PLANE', 'SCENE']);
 const PL = 'pl-PL';
 const hhmm = t => new Date(t).toLocaleTimeString(PL, {hour: '2-digit', minute: '2-digit'});
 const day = t => { const d = new Date(t), n = new Date(); const y = new Date(n); y.setDate(n.getDate() - 1);
   return d.toDateString() === n.toDateString() ? 'dziś' : d.toDateString() === y.toDateString() ? 'wczoraj' : d.toLocaleDateString(PL, {day: 'numeric', month: 'short'}); };
-// Moving engravings (prepared six-frame strips): a sprite stepped by one ticker; still images when motion is reduced.
+// Moving engravings use validated six-frame descriptors and keep their poster until the sprite is ready.
 const still = matchMedia('(prefers-reduced-motion: reduce)');
+const ANIM_ID = /^[0-9a-f]{64}$/;
+const CLIP_NAME = /^[0-9a-f]{8}[.](?:wav|mp3)$/;
+const ANIM_DIMENSION = 4096;
+const validClip = value => typeof value === 'string' && CLIP_NAME.test(value) ? value : null;
+const validAnimation = value => {
+  if (!value || typeof value !== 'object' || !ANIM_ID.test(value.id)) return null;
+  const w = value.w, h = value.h;
+  return Number.isInteger(w) && Number.isInteger(h) && w > 0 && h > 0 && w <= ANIM_DIMENSION && h <= ANIM_DIMENSION ? { id: value.id, w, h } : null;
+};
+const copyEntry = value => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const entry = { ...value };
+  if ('audio' in entry) entry.audio = validClip(entry.audio);
+  if ('clip' in entry) entry.clip = validClip(entry.clip);
+  return entry;
+};
+function normalizeState(raw) {
+  /*
+   * Validate untrusted state once at the fetch boundary.
+   * Rendering and the frame ticker can then use bounded descriptors without
+   * attempting recovery in a hot path.
+   */
+
+  const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const next = { ...source };
+  next.birds = Array.isArray(source.birds) ? source.birds.map(copyEntry).filter(Boolean) : [];
+  next.planes = Array.isArray(source.planes) ? source.planes.map(copyEntry).filter(Boolean) : [];
+  next.sounds = Array.isArray(source.sounds) ? source.sounds.map(copyEntry).filter(Boolean) : [];
+  const animations = Object.create(null);
+  if (source.animations && typeof source.animations === 'object' && !Array.isArray(source.animations)) {
+    Object.entries(source.animations).forEach(([binding, value]) => {
+      const split = binding.indexOf(':');
+      const kind = split < 0 ? '' : binding.slice(0, split);
+      const key = split < 0 ? '' : binding.slice(split + 1);
+      const descriptor = validAnimation(value);
+      if (ART_KINDS.has(kind) && key && descriptor) animations[binding] = descriptor;
+    });
+  }
+  next.animations = animations;
+  if (source.stats && typeof source.stats === 'object') {
+    next.stats = { ...source.stats };
+    if (source.stats.birds && typeof source.stats.birds === 'object') {
+      next.stats.birds = { ...source.stats.birds };
+      const best = source.stats.birds.best;
+      if (best && typeof best === 'object' && !Array.isArray(best)) {
+        next.stats.birds.best = Object.fromEntries(Object.entries(best).map(([key, value]) => {
+          const item = copyEntry(value);
+          return [key, item || {}];
+        }));
+      }
+    }
+  }
+  return next;
+}
 const animOf = (kind, key) => state && state.animations && state.animations[kind + ':' + key];
-const moving = (a, cls) => '<div class="' + cls + ' anim" role="img" style="aspect-ratio:' + a.w + '/' + a.h +
-  ';background-image:url(anim?id=' + a.id + ')"></div>';
-// The big plate moves all the time; small engravings stay still and move only under the pointer (the strip
-// is loaded then, not with the page).
+const animUrl = id => 'anim?id=' + encodeURIComponent(id);
+const posterUrl = id => animUrl(id) + '&poster=1';
+const animationAllowed = () => !paused && !still.matches && !document.hidden;
 let frame = 0;
-// The pause button at the top: kept in this browser only.
-// Paused unless this browser switched animations on.
-let paused = true;
-try { paused = localStorage.getItem('ryciny-paused') !== '0'; } catch (e) {}
+// Animation playback is opt-out. A saved value of 1 remains an explicit pause.
+let paused = false;
+try { paused = localStorage.getItem('ryciny-paused') === '1'; } catch (e) {}
 function togglePause() {
+  /*
+   * Persist the user's explicit preference while keeping current audio
+   * ownership intact. The visual sources are reconciled after the control
+   * changes so a paused page cannot leave a stale sprite visible.
+   */
+
   paused = !paused;
   try { localStorage.setItem('ryciny-paused', paused ? '1' : '0'); } catch (e) {}
   pauseLabel();
+  syncAnimatedArt();
 }
 function pauseLabel() {
   const b = document.getElementById('pause');
-  if (b) { b.textContent = paused ? '▶ włącz animacje' : '❚❚ zatrzymaj animacje'; b.setAttribute('aria-pressed', paused ? 'true' : 'false'); }
-  const n = document.getElementById('animNote');
-  if (n) n.hidden = !(b && paused);
+  if (b) {
+    b.textContent = paused ? '▶' : '❚❚';
+    b.title = paused ? 'Włącz animacje' : 'Zatrzymaj animacje';
+    b.setAttribute('aria-label', paused ? 'Włącz animacje' : 'Zatrzymaj animacje');
+    b.setAttribute('aria-pressed', paused ? 'true' : 'false');
+  }
 }
 setInterval(() => {
   if (paused || still.matches || document.hidden) return;
   frame = (frame + 1) % 6;
-  document.querySelectorAll('.big.anim, .anim.hover').forEach(el => el.style.backgroundPosition = (frame * 20) + '% 0');
+  document.querySelectorAll('.big.anim, .anim.hover, .anim.audio').forEach(el => el.style.backgroundPosition = (frame * 20) + '% 0');
 }, 180);
-// A small engraving with an animation: frame one as the still, in a box of the frame's own proportions, so the
-// moving strip that replaces it on hover covers exactly the same pixels.
-const box = (a, side) => { const r = a.w / a.h; return r >= 1 ? [side, Math.round(side / r)] : [Math.round(side * r), side]; };
-const art = (kind, key, cls = 'thumb') => {
-  const a = animOf(kind, key);
-  if (!a) return stillArt(kind, key, cls);
-  if (cls === 'big') return moving(a, cls);
-  const [w, h] = box(a, 58);
-  return '<span class="tbox"><img class="still" alt="" loading="lazy" src="anim?id=' + a.id + '&poster=1" style="width:' + w + 'px;height:' + h +
-    'px" data-anim="' + a.id + '"></span>';
-};
-// The whole row is the hover area: its engraving moves while the pointer is anywhere on the row.
+const spriteRequests = new Map();
+function ensureSprite(id) {
+  /*
+   * Load each immutable atlas once and remember failure at the boundary.
+   * Callers keep their poster until this promise succeeds, so a missing
+   * sprite never turns a usable engraving into an empty box.
+   */
+
+  if (!ANIM_ID.test(id)) return Promise.resolve(false);
+  const existing = spriteRequests.get(id);
+  if (existing) return existing.promise;
+  if (typeof Image !== 'function') {
+    const promise = Promise.resolve(false);
+    spriteRequests.set(id, { status: 'failed', promise });
+    return promise;
+  }
+  const promise = new Promise(resolve => {
+    const image = new Image();
+    image.onload = () => { spriteRequests.set(id, { status: 'loaded', promise }); resolve(true); };
+    image.onerror = () => { spriteRequests.set(id, { status: 'failed', promise }); resolve(false); };
+    image.src = animUrl(id);
+  });
+  spriteRequests.set(id, { status: 'loading', promise });
+  return promise;
+}
+const connected = node => !!node && (node.isConnected !== undefined ? node.isConnected : !!(document.documentElement && document.documentElement.contains(node)));
 const rowOf = el => el && el.closest && el.closest('.top li, .row');
+const hoverRows = new WeakMap();
+const audioRows = new WeakSet();
+const rowRequests = new WeakMap();
+
+function restoreSprite(sprite) {
+  if (sprite && sprite.dataset.still) sprite.outerHTML = sprite.dataset.still;
+}
+function makeSprite(img, sources) {
+  const mode = img.dataset.animMode === 'big' ? 'big' : 'thumb';
+  const div = document.createElement('div');
+  div.className = [mode, 'anim', ...sources].join(' ');
+  div.setAttribute('role', 'img');
+  div.setAttribute('aria-label', img.getAttribute('alt') || '');
+  div.setAttribute('style', (img.getAttribute('style') || '') + ';background-image:url(' + animUrl(img.dataset.anim) + ')');
+  div.dataset.still = img.outerHTML;
+  div.dataset.anim = img.dataset.anim;
+  div.dataset.animMode = img.dataset.animMode || 'row';
+  div.style.backgroundPosition = (frame * 20) + '% 0';
+  return div;
+}
+function syncRowAnimation(row) {
+  if (!row || !connected(row)) return;
+  const wantHover = hoverRows.has(row), wantAudio = audioRows.has(row);
+  const sprite = row.querySelector('.anim[data-anim]');
+  const img = row.querySelector('img[data-anim]');
+  if (!wantHover && !wantAudio || !animationAllowed()) {
+    if (sprite) restoreSprite(sprite);
+    return;
+  }
+  if (sprite) {
+    sprite.classList.toggle('hover', wantHover);
+    sprite.classList.toggle('audio', wantAudio);
+    return;
+  }
+  if (!img) return;
+  const token = {};
+  rowRequests.set(row, token);
+  ensureSprite(img.dataset.anim).then(ok => {
+    if (!ok || rowRequests.get(row) !== token || (!hoverRows.has(row) && !audioRows.has(row)) || !animationAllowed()) return;
+    const current = row.querySelector('img[data-anim]');
+    if (!current || current !== img || !connected(current)) return;
+    current.replaceWith(makeSprite(current, [hoverRows.has(row) ? 'hover' : '', audioRows.has(row) ? 'audio' : ''].filter(Boolean)));
+  });
+}
+function syncAnimatedArt() {
+  document.querySelectorAll('.big.anim[data-anim-mode="big"]').forEach(sprite => {
+    if (!animationAllowed()) restoreSprite(sprite);
+  });
+  document.querySelectorAll('img[data-anim-mode="big"]').forEach(img => {
+    if (!animationAllowed() || !connected(img)) return;
+    ensureSprite(img.dataset.anim).then(ok => {
+      if (!ok || !animationAllowed() || !connected(img) || img.parentNode == null) return;
+      img.replaceWith(makeSprite(img, []));
+    });
+  });
+  document.querySelectorAll('.top li, .row').forEach(syncRowAnimation);
+}
+if (still.addEventListener) still.addEventListener('change', syncAnimatedArt);
 document.addEventListener('pointerover', e => {
   const row = rowOf(e.target);
-  const img = row && row.querySelector('img[data-anim]');
-  if (!img || still.matches || paused) return;
-  const div = document.createElement('div');
-  div.className = 'anim hover';
-  div.style.cssText = 'width:' + img.style.width + ';height:' + img.style.height + ';background-image:url(anim?id=' + img.dataset.anim + ')';
-  div.dataset.still = img.outerHTML;
-  img.replaceWith(div);
+  if (!row || (e.relatedTarget && row.contains(e.relatedTarget))) return;
+  hoverRows.set(row, {});
+  syncRowAnimation(row);
 });
 document.addEventListener('pointerout', e => {
   const row = rowOf(e.target);
   if (!row || (e.relatedTarget && row.contains(e.relatedTarget))) return;
-  row.querySelectorAll('.anim.hover').forEach(div => { div.outerHTML = div.dataset.still; });
+  hoverRows.delete(row);
+  syncRowAnimation(row);
 });
+addEventListener('visibilitychange', syncAnimatedArt);
+const box = (a, side) => { const r = a.w / a.h; return r >= 1 ? [side, side / r] : [side * r, side]; };
+const art = (kind, key, cls = 'thumb') => {
+  const a = animOf(kind, key);
+  if (!a) return stillArt(kind, key, cls);
+  if (cls === 'big') {
+    const maxWidth = 420 * a.w / a.h;
+    return '<span class="bigbox" style="width:min(100%,' + maxWidth + 'px);height:auto;aspect-ratio:' + a.w + '/' + a.h + '"><img class="big still" role="img" alt="" loading="lazy" src="' + posterUrl(a.id) + '" style="width:100%;height:100%" data-anim="' + a.id + '" data-anim-mode="big"></span>';
+  }
+  const [w, h] = box(a, 58);
+  return '<span class="tbox"><img class="still thumb" alt="" loading="lazy" src="' + posterUrl(a.id) + '" style="width:' + w + 'px;height:' + h + 'px" data-anim="' + a.id + '" data-anim-mode="row"></span>';
+};
 const stillArt = (kind, key, cls = 'thumb') => '<img class="' + cls + '" loading="lazy" alt="" src="art?kind=' + kind + '&key=' + encodeURIComponent(key) + '&v=' + ((state && state.artv && state.artv[kind + ':' + key]) || '') + '" onerror="this.outerHTML=\\'<div class=&quot;' + cls + ' empty&quot;></div>\\'">';
 const FILTERS = [['all', 'wszystko', ''], ['birds', 'ptaki', 'ptaki'], ['planes', 'samoloty', 'samoloty'], ['sounds', 'dźwięki', 'dzwieki']];
 const fromHash = () => (FILTERS.find(f => f[2] && '#' + f[2] === location.hash) || FILTERS[0])[0];
@@ -290,24 +435,98 @@ const PAGE = 25;
 async function load() {
   try {
     const r = await fetch('api/state', {cache: 'no-cache'});
-    state = await r.json();
+    if (!r.ok) throw new Error('state request failed');
+    state = normalizeState(await r.json());
     render();
   } catch (e) { $('#upd').textContent = 'brak połączenia'; }
 }
 
 const wiki = sci => 'https://pl.wikipedia.org/wiki/Special:Search?go=Go&search=' + encodeURIComponent(sci);
 let player = null;
-const playBtn = name => name ? '<button class="play" title="Posłuchaj" data-n="' + name + '" onclick="play(this)">▶</button>' : '';
-function play(btn) {
-  const name = btn.dataset.n;
-  if (player) { player.pause(); document.querySelectorAll('.play.on').forEach(b => { b.classList.remove('on'); b.textContent = '▶'; }); }
-  if (btn.dataset.playing) { delete btn.dataset.playing; player = null; return; }
-  document.querySelectorAll('.play[data-playing]').forEach(b => delete b.dataset.playing);
-  player = new Audio('clip?name=' + name);
-  btn.dataset.playing = '1'; btn.classList.add('on'); btn.textContent = '■';
-  player.onended = () => { delete btn.dataset.playing; btn.classList.remove('on'); btn.textContent = '▶'; };
-  player.play();
+let playerButton = null;
+let activeAudioRow = null;
+let playerToken = 0;
+function setButtonPlaying(btn, playing) {
+  if (!btn) return;
+  if (playing) btn.dataset.playing = '1'; else delete btn.dataset.playing;
+  btn.classList.toggle('on', playing);
+  btn.textContent = playing ? '❚❚' : '▶';
+  btn.title = playing ? 'Pauzuj nagranie' : 'Odtwórz nagranie';
+  btn.setAttribute('aria-label', playing ? 'Pauzuj nagranie' : 'Odtwórz nagranie');
 }
+function clearAudioDemand(row) {
+  if (!row) return;
+  audioRows.delete(row);
+  syncRowAnimation(row);
+}
+function disposePlayer(audio, token) {
+  if (!player) return;
+  if (player !== audio || playerToken !== token) return;
+  const button = playerButton, row = activeAudioRow;
+  player = null;
+  playerButton = null;
+  activeAudioRow = null;
+  playerToken += 1;
+  setButtonPlaying(button, false);
+  clearAudioDemand(row);
+  try { audio.pause(); } catch (e) {}
+}
+function pausePlayer() {
+  if (!player) return;
+  setButtonPlaying(playerButton, false);
+  clearAudioDemand(activeAudioRow);
+  try { player.pause(); } catch (e) {}
+}
+function requestAudioPlay(audio, button, token) {
+  try {
+    const pending = audio.play();
+    if (pending && typeof pending.catch === 'function') pending.catch(() => disposePlayer(audio, token));
+  } catch (e) {
+    disposePlayer(audio, token);
+  }
+}
+function play(btn) {
+  /*
+   * Audio ownership follows the browser's actual media events. A click only
+   * requests playback; row animation starts from the playing event and is
+   * cleared by pause, ended, error, or a rejected play promise.
+   */
+
+  const name = validClip(btn && btn.dataset && btn.dataset.n);
+  if (!name) { setButtonPlaying(btn, false); return; }
+  if (playerButton === btn && player) {
+    if (player.paused) requestAudioPlay(player, btn, playerToken);
+    else pausePlayer();
+    return;
+  }
+  disposePlayer(player, playerToken);
+  let audio;
+  try { audio = new Audio('clip?name=' + encodeURIComponent(name)); } catch (e) { return; }
+  const token = ++playerToken;
+  player = audio;
+  playerButton = btn;
+  activeAudioRow = rowOf(btn);
+  audio.onplaying = () => {
+    if (player !== audio || playerToken !== token) return;
+    setButtonPlaying(btn, true);
+    if (activeAudioRow) { audioRows.add(activeAudioRow); syncRowAnimation(activeAudioRow); }
+  };
+  audio.onpause = () => {
+    if (player !== audio || playerToken !== token) return;
+    setButtonPlaying(btn, false);
+    clearAudioDemand(activeAudioRow);
+  };
+  audio.onended = () => disposePlayer(audio, token);
+  audio.onerror = () => disposePlayer(audio, token);
+  requestAudioPlay(audio, btn, token);
+}
+function reconcilePlayer() {
+  if (player && playerButton && !connected(playerButton)) disposePlayer(player, playerToken);
+}
+const playBtn = name => {
+  const clip = validClip(name);
+  return clip ? '<button type="button" class="play" title="Odtwórz nagranie" aria-label="Odtwórz nagranie" data-n="' + esc(clip) + '" onclick="play(this)">▶</button>' : '';
+};
 const wikiLink = (sci, label) => '<a href="' + wiki(sci) + '" target="_blank" rel="noopener">' + label + '</a>';
 let shown = null; // the plate being looked at with the arrows; null = always the newest
 
@@ -329,7 +548,7 @@ function renderPlate() {
   let i = shown ? list.findIndex(x => x.id === shown) : 0;
   if (i < 0) { i = 0; shown = null; }
   const n = list[i];
-  if (!n) { $('#plate').innerHTML = '<p class="soft">Cisza.</p>'; return; }
+  if (!n) { $('#plate').innerHTML = '<p class="soft">Cisza.</p>'; reconcilePlayer(); syncAnimatedArt(); return; }
   const go = j => '<button class="arrow" data-i="' + j + '"' + (j < 0 || j >= list.length ? ' disabled' : '') + '>';
   $('#plate').innerHTML =
     '<div class="nav">' + go(i + 1) + '‹ wcześniej</button><span class="soft">' + (i === 0 ? 'najnowsze' : (i + 1) + ' z ' + list.length +
@@ -341,6 +560,8 @@ function renderPlate() {
   $('#plate').querySelectorAll('button[data-i]').forEach(b => b.onclick = () => { const j = +b.dataset.i; shown = j === 0 ? null : list[j].id; renderPlate(); });
   const now = $('#plate').querySelector('[data-now]');
   if (now) now.onclick = e => { e.preventDefault(); shown = null; renderPlate(); };
+  reconcilePlayer();
+  syncAnimatedArt();
 }
 
 addEventListener('keydown', e => {
@@ -351,7 +572,7 @@ addEventListener('keydown', e => {
 
 function render() {
   const s = state;
-  if (!s || !s.birds) { $('#plate').innerHTML = '<p class="soft">Jeszcze nic tu nie ma.</p>'; return; }
+  if (!s || !s.birds) { $('#plate').innerHTML = '<p class="soft">Jeszcze nic tu nie ma.</p>'; reconcilePlayer(); syncAnimatedArt(); return; }
   $('#upd').textContent = 'aktualizacja ' + day(s.updatedAt) + ' ' + hhmm(s.updatedAt);
   renderPlate();
 
@@ -423,6 +644,8 @@ function render() {
   $('#entries').innerHTML = rows.slice(page * PAGE, (page + 1) * PAGE).map(r => r.html).join('') || '<p class="soft">Jeszcze pusto.</p>';
   $('#pager').innerHTML = pages < 2 ? '' : pager(pages);
   $('#pager').querySelectorAll('button[data-p]').forEach(b => b.onclick = () => { page = +b.dataset.p; render(); $('#dziennik').scrollIntoView({behavior: 'smooth'}); });
+  reconcilePlayer();
+  syncAnimatedArt();
 }
 
 // ‹ nowsze 1 … 4 5 6 … 20 starsze ›
@@ -434,6 +657,21 @@ function pager(pages) {
   return out + btn(page + 1, 'starsze ›', false, page === pages - 1) + '<span class="soft"> ' + rows_label(pages) + '</span>';
 }
 const rows_label = pages => 'strona ' + (page + 1) + ' z ' + pages;
+
+if (globalThis.__RYCINY_TEST__) {
+  globalThis.__rycinyViewerTest = {
+    validClip,
+    validAnimation,
+    normalizeState,
+    setState: value => { state = normalizeState(value); },
+    getPaused: () => paused,
+    getPlayer: () => player,
+    getPlayerButton: () => playerButton,
+    isAudioRowActive: row => audioRows.has(row),
+    play,
+    syncRowAnimation,
+  };
+}
 
 load();
 setInterval(load, 60000);

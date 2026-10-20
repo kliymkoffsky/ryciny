@@ -144,6 +144,74 @@ registered atlas pose; no separate still generation is required for this pack.
 The checked-in defaults remain unchanged: playback and generation are off until
 the user enables them.
 
+## Add sticker backing
+
+The sticker pass runs after frame preparation. It processes each frame
+independently, so the border can move with the drawing. It does not change
+the source image, generation prompt, source atlas, or pack manifest.
+
+The pass finds each frame's alpha silhouette and expands it with a rounded
+margin in warm ivory (`#F2EDE3`) behind the original pixels. The color matches
+the supplied paper reference. The margin follows the actual outline,
+including its concave edges. The margin is 1.8% of the longest canvas side,
+rounded up. Smoothing rounds small bumps in the expanded outline while keeping
+open gaps around the subject. Extra transparent padding prevents clipping;
+all six frames keep a common canvas size. The subject is never resized or
+stretched. White details in the drawing remain intact.
+
+The add-on automatically runs this separate step when it registers a raw pack,
+at startup or after background generation. No image-model call, API key, or
+playback setting is needed for outlining. It saves a derived pack and receipt
+under `data/animation-outlines/<recipe-id>/<raw-pack-id>/`, while the raw pack
+stays intact in `data/animations`. Sprites and public exports use the derived
+frames. HTTP requests and playback never run the outline renderer.
+
+The recipe ID includes the parameters, renderer and pipeline code hashes,
+Pillow, NumPy, and zlib versions. A restart validates and reuses the cache.
+Changed recipes produce new variants from the raw pack. A complete pack and its
+receipt are published together by an atomic directory rename. Invalid receipts,
+failed rendering, or padded dimensions beyond the animation limits retain the
+existing still-image fallback; they do not alter the raw input or publish a
+partial variant. No resize or clipping is used to fit a limit.
+
+The 57 already outlined bundles are recognized by their exact content IDs in
+`homeassistant/ryciny/app/ryciny/animation-sticker-index.json`. This authored v4
+index ships inside the Docker image and remains valid across encoder changes,
+so those frames are reused byte for byte without another border.
+
+The optional maintenance command below applies the same renderer directly to
+selected prepared assets, with an external backup. It is useful when preparing
+checked-in bundles; normal runtime preparation needs no manual command.
+Preview the work, then apply it explicitly:
+
+```sh
+python tools/add_sticker_borders.py \
+  --root homeassistant/ryciny/app/ryciny/prepared-animations \
+  --receipt docs/animation-atlases/sticker-pass.jsonl
+
+python tools/add_sticker_borders.py \
+  --root homeassistant/ryciny/app/ryciny/prepared-animations \
+  --receipt docs/animation-atlases/sticker-pass.jsonl \
+  --backup-dir /path/to/sticker-backups --apply
+```
+
+Add `--pack SCENE/cat` to select one pack within the root, or select a different
+root for newly prepared packs. `--backup-dir` must point outside the prepared
+root; the pass saves the original frames there before applying changes.
+The receipt records the recipe and before/after hashes. Repeating the pass
+skips matching processed frames; it does not add another border. Unexpected
+changes fail validation. Applying the canonical root with the default receipt
+also updates the shipped index of processed content IDs. For a different root,
+retain its external receipt. Runtime ingestion takes raw packs; an outlined
+pack copied without its cache bundle or shipped index entry loses that proof
+and cannot be identified safely as already processed.
+
+Frame bytes are part of the pack's content ID, so processed packs receive new
+IDs automatically. Ship the updated add-on assets and let its publisher upload
+the new atlases and posters. Deploy the public viewer change too: animated
+artwork must use normal blending to preserve the backing color in both themes.
+Source atlases and earlier review montages show the art before post-processing.
+
 ## Prepare or generate
 
 The command-line tool plans work locally by default and makes no network request:
@@ -162,7 +230,13 @@ image request.
 
 Use `--sheet path/to/existing-1536x1024.png` to import an atlas for local
 preparation. The default mode does not need `--output`. The command requires
-`--output` with `--sheet` or `--generate`. That path names a new pack directory.
+`--output` with `--sheet` or `--generate`. That path names a new raw pack directory.
+After atlas preparation, the command automatically creates its outlined variant
+in `output/animation-outlines/`; use `--outline-cache` to choose another cache.
+The JSON result reports the outlined `path` and `id`, plus `raw_path` and `raw_id`.
+Keep the raw pack for future recipe changes. An existing output is rejected
+before any provider call. The add-on can ingest that raw pack and prepare its
+own cached variant without calling a model.
 
 The checked-in examples came from the built-in OpenAI image tool without a user
 API key. Its backend model was unavailable, so the catalog records
@@ -199,8 +273,17 @@ enable playback. The startup variables
 
 The Home Assistant API emits animation descriptors only when
 `animation_playback` is on. The public-site exporter publishes prepared
-descriptors independently. Its viewer starts paused and stores local browser
-opt-in.
+descriptors independently. Its viewer enables motion by default, stores an
+explicit browser pause, and respects reduced motion. The main engraving moves
+automatically; miniatures move on hover and while their recording plays.
+Still and animated previews share the same box and preserve the source aspect
+ratio in both themes and at narrow screen widths.
+
+The public viewer runs from `public-site/worker.js` in a separate Cloudflare
+Worker. Add-on releases update the publisher and prepared packs, but do not deploy
+the public viewer. Validate its player with
+`node --test public-site/*.test.*`, then deploy from `public-site` with
+`npx wrangler@4.151.2 deploy` using the Cloudflare account that owns the Worker.
 
 The Android client in Home Assistant mode follows the API descriptor gate.
 Standalone Android keeps its still-image path. Generic Camera, Picture entity,
