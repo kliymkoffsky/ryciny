@@ -113,6 +113,37 @@ The runtime uses that still only when no cached scene still exists. An existing
 cached custom still stays in use. The runtime serves animation frames only when
 the exact key and cached source match. It keeps the custom still when they do not.
 
+## Pack 6: ten everyday scene atlases
+
+The sixth pack adds ten prepared bundles for exact sound keys from
+`shared/sounds.json`. The repository now contains 47 prepared bundles across
+the original pack and packs 3, 4, 5, and 6.
+
+| atlas | exact binding |
+| --- | --- |
+| `pack-6/tools.png` | `SCENE / tools` |
+| `pack-6/chainsaw.png` | `SCENE / chainsaw` |
+| `pack-6/helicopter.png` | `SCENE / helicopter` |
+| `pack-6/ambulance.png` | `SCENE / ambulance` |
+| `pack-6/police.png` | `SCENE / police` |
+| `pack-6/fire.png` | `SCENE / fire` |
+| `pack-6/caralarm.png` | `SCENE / caralarm` |
+| `pack-6/rooster.png` | `SCENE / rooster` |
+| `pack-6/frog.png` | `SCENE / frog` |
+| `pack-6/bee.png` | `SCENE / bee` |
+
+[Pack 6 montage](animation-atlases/pack-6/moving-images.gif) shows the ten
+new atlases. [Pack 6 attribution](animation-atlases/pack-6/ATTRIBUTION.md)
+records the generation source and external provenance packet.
+
+Each pack-6 entry records the exact `SCENE` key, one canonical atlas prompt,
+the source and sheet `SHA-256` hashes, `provider: openai-built-in-imagegen`,
+and `backend_model: null` because the built-in tool does not expose a backend
+model identifier. The runtime `original.png` is derived from the first
+registered atlas pose; no separate still generation is required for this pack.
+The checked-in defaults remain unchanged: playback and generation are off until
+the user enables them.
+
 ## Prepare or generate
 
 The command-line tool plans work locally by default and makes no network request:

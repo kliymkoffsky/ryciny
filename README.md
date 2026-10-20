@@ -68,6 +68,17 @@ prepared bundles. The montage shows the new atlases. Detailed bindings, source
 hashes, and provenance are in the [preparation guide](docs/animation-preparation.md)
 and [catalog](docs/animation-atlases/catalog.json).
 
+![Pack 6 montage](docs/animation-atlases/pack-6/moving-images.gif)
+
+Pack 6 adds ten more `SCENE` bundles for tools, a chainsaw, a helicopter,
+emergency vehicles, a car alarm, a rooster, frogs, and bees. It brings the
+repository to 47 prepared bundles. Each bundle uses one built-in atlas
+generation; its runtime original is derived from the first registered atlas
+pose. Provider metadata, exact bindings, prompts, and hashes are recorded in
+the [preparation guide](docs/animation-preparation.md) and
+[catalog](docs/animation-atlases/catalog.json). Playback and generation remain
+off by default.
+
 The feature builds on merged [PR #4](https://github.com/qunabu/ryciny/pull/4),
 [PR #3](https://github.com/qunabu/ryciny/pull/3), and
 [PR #5](https://github.com/qunabu/ryciny/pull/5).

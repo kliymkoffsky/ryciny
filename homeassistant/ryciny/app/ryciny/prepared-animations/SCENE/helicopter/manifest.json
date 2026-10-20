@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "helicopter",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "1dffe43a132c4f1cb329b5de761872e2258818ef47c2936713e2dde7b89be1f8",
+  "source_sha256": "c23a9451261057c684c6591565d58b17c677aea689a2aa4b95915242df8e20b0",
+  "version": 1
+}

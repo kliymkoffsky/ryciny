@@ -142,6 +142,10 @@ def test_provider_error_and_real_checked_in_packs(tmp_path: Path, monkeypatch: p
         ("SCENE", "train"), ("SCENE", "rain"), ("SCENE", "wind"),
         ("SCENE", "storm"), ("SCENE", "doorbell"), ("SCENE", "talking"),
         ("SCENE", "children"),
+        ("SCENE", "tools"), ("SCENE", "chainsaw"), ("SCENE", "helicopter"),
+        ("SCENE", "ambulance"), ("SCENE", "police"), ("SCENE", "fire"),
+        ("SCENE", "caralarm"), ("SCENE", "rooster"), ("SCENE", "frog"),
+        ("SCENE", "bee"),
     }
     found = set()
     for path in sorted(PACK_ROOT.glob("*/*")):

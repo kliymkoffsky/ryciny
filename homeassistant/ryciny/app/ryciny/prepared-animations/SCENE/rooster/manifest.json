@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "rooster",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "8b45a23d8fee7664f5a95b539be20ba00d580ac5b0587e4e2f0cd204388f8a5f",
+  "source_sha256": "2dabc70616fedbd869164b0d2f7950635f964069b238924696ce91581616dcf3",
+  "version": 1
+}

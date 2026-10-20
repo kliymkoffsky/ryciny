@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "fire",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "a1c6abeb9659db530c8d1a9610917f0c1174585c7fb16759e6ed1bb266603ab9",
+  "source_sha256": "bfd5ae3122af2846e9c2829c07c1d53ab23601de2d6acd0def59cd8e8f3fcfa9",
+  "version": 1
+}

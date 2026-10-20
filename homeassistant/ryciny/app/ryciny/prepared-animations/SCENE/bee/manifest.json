@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "bee",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "1907c3f0478e5763878e2ada5d5418288c2ffa373765a39159b0bc45b6738666",
+  "source_sha256": "2317b1fb658ea902a20fc28d32811ed48eb6e35e8fd03cc177762780b0023aa8",
+  "version": 1
+}

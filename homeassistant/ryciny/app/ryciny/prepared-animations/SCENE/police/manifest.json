@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "police",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "1e00b107b0074c593a8016da14a125e477765f959bbc9473960a127ffa03c927",
+  "source_sha256": "5b71d46e18aeb384d3f381dc3a09ab81c35e883f7d28b4f57a1bb112d2a652b1",
+  "version": 1
+}
