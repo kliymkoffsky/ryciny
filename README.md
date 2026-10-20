@@ -1,5 +1,10 @@
 # Ryciny
 
+![20 animowanych rycin z jasnym obrysem w ciemnym motywie](docs/animation-atlases/readme-dark.gif)
+
+Losowy przegląd 20 animacji: ptaki, dźwięki okolicy, pies i samolot.
+Każda rycina odtwarza dwa cykle, a cały podgląd zapętla się.
+
 Ramka w stylu [fugleramme](https://github.com/arnegiacomo/fugleramme): telefon cały czas słucha okolicy
 i rysuje na „papierze” XIX-wieczne ryciny tego, co się dzieje wokół domu:
 
@@ -61,14 +66,14 @@ The add-on can play six cached frames over an existing engraving. Paper, caption
 and layout stay fixed. Fresh installations start with playback and generation off.
 Existing saved choices stay in effect after an upgrade.
 
-![Pack 5 review montage](docs/animation-atlases/pack-5/moving-images.gif)
+[View the pack 5 montage](docs/animation-atlases/pack-5/moving-images.gif).
 
 Pack 5 adds ten everyday sound-scene bundles and brings the repository to 37
 prepared bundles. The montage shows the new atlases. Detailed bindings, source
 hashes, and provenance are in the [preparation guide](docs/animation-preparation.md)
 and [catalog](docs/animation-atlases/catalog.json).
 
-![Pack 6 montage](docs/animation-atlases/pack-6/moving-images.gif)
+[View the pack 6 montage](docs/animation-atlases/pack-6/moving-images.gif).
 
 Pack 6 adds ten more `SCENE` bundles for tools, a chainsaw, a helicopter,
 emergency vehicles, a car alarm, a rooster, frogs, and bees. It brings the
