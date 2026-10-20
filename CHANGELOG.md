@@ -8,6 +8,12 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.25.0 - 2026-10-20
+
+- Animacje (PR #6, #7, Paweł Klimkowski): 37 paczek. Nowe ptaki: zimorodek, bocian, puszczyk, bogatka, modraszka,
+  wróbel, zięba, szczygieł, strzyżyk, szpak; nowe dźwięki: kot, samochód, motocykl, pociąg, deszcz, wiatr, burza,
+  dzwonek, rozmowa, dzieci. Dźwięk bez własnej ryciny bierze gotową rycinę z paczki zamiast generować płatną.
+
 ## 0.24.2 - 2026-10-19
 
 - Strona publiczna: na dużej rycinie animacja stale, przy statystykach i w Dzienniku tylko po najechaniu na
