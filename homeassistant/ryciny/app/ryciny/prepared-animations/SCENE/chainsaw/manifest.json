@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "chainsaw",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "df50bb264f540c01d20d55ea38ec8bf2658d9e40fe4d329f842bd9c8320476aa",
+  "source_sha256": "e5ccc8b9813d533e6c54bc4600f0051d326f6654daa63d6176a150605bf82425",
+  "version": 1
+}

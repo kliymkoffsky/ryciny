@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "caralarm",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "6f4a64ddb7174b109bc2cc1243ceeef7be5c4f37e1322fd644acb7e31082b149",
+  "source_sha256": "0940a0586f71bd92f81dbdfc67c88b0d171c4c91758e693da23a6bf8cf60d93b",
+  "version": 1
+}

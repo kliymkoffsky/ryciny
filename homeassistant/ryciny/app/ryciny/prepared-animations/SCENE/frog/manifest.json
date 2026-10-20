@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "frog",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "cc827ba9b461d62d5fc0f1dbaaf5f991955be50f9d43c67ddcbe2a80f3879d8e",
+  "source_sha256": "1a23d652798182b6bc0758ef8e14dd41182861691f022ad5f9988e763a985b90",
+  "version": 1
+}

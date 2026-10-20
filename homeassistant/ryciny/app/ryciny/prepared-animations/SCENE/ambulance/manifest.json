@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "ambulance",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "d72081fc59200ca91abbce7f75b28aca15f6e277948ae93d547acdc5dcba4f44",
+  "source_sha256": "27b9324b64c64c690cad0d9acd7081e6de101183c51e8d9347cbc669e4160a5a",
+  "version": 1
+}
