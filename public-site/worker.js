@@ -158,6 +158,9 @@ h2{font-weight:400;font-size:24px;border-bottom:1px solid var(--rule);margin:34p
 .arrow{font:inherit;font-size:16px;background:none;border:1px solid var(--rule);color:var(--ink);padding:2px 12px;border-radius:14px;cursor:pointer}
 .arrow:disabled{opacity:.3;cursor:default}
 .top a,.row a{color:inherit;text-decoration-color:var(--rule)}
+.repo-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:-4px 0 18px}
+.repo-actions a{display:inline-block;border:1px solid var(--rule);border-radius:14px;padding:3px 12px;color:var(--rubric);font-size:16px;text-decoration:none}
+.repo-actions a:hover,.repo-actions a:focus-visible{background:var(--rubric);color:var(--paper)}
 .pager{margin-top:14px;justify-content:center;align-items:center}
 .filters.top{position:sticky;top:0;z-index:2;background:var(--paper);justify-content:center;padding:8px 0;margin:0 0 12px;border-bottom:1px solid var(--rule)}
 .play{font:inherit;font-size:16px;background:none;border:1px solid var(--rule);color:var(--rubric);border-radius:50%;width:34px;height:34px;cursor:pointer;flex:none;margin-left:auto}
@@ -184,6 +187,10 @@ a{color:var(--rubric)}
 <main>
   <h1>Dźwięki Dolnego Migowa</h1>
   <p class="sub">Gdańsk · mikrofon za oknem słucha ptaków, samolotów i okolicy · <span id="upd">…</span></p>
+  <nav class="repo-actions" aria-label="Projekt na GitHubie">
+    <a href="https://github.com/qunabu/ryciny" aria-label="Dodaj gwiazdkę projektowi Ryciny na GitHubie">★ Dodaj gwiazdkę</a>
+    <a href="https://github.com/qunabu/ryciny/fork" aria-label="Utwórz fork projektu Ryciny na GitHubie">Forkuj projekt</a>
+  </nav>
   <nav class="filters top" id="filters"></nav>
   <p class="note" id="animNote" hidden>Niektóre ryciny są ruchome. Animacje są domyślnie zatrzymane; włączysz je przyciskiem <b>▶ włącz animacje</b> na górze.</p>
   <section class="plate" id="plate"><p class="soft">Wczytuję…</p></section>
