@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "goat",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "3819156f20d1614f19158a0f6d77229f2a1dd2a725aaeec199aceda9683979a7",
+  "source_sha256": "3f1ceec77ce5284667a16080a258b917350232bc244437ef42bc1b97e0d4a9af",
+  "version": 1
+}

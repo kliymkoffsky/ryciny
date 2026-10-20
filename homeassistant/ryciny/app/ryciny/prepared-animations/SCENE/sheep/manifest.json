@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "sheep",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "5dab3b9fddb45791ed4266b160c5536a37a73c387f24dc4079f042b37b9d8a9f",
+  "source_sha256": "509919cc731a84c6f856dc805ee68d9b0bcfbff59e8295874cf25d83f47f8590",
+  "version": 1
+}

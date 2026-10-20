@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "icecream",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "93766235cb856f1896867a27acc7a8a88350426f271636c73c2b1fe2e566bdef",
+  "source_sha256": "697b324013d12820b8d60a7113ff3a24f0c0c1e0a31c56c3ad67fc27ace3eeb4",
+  "version": 1
+}

@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "pig",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "934f441dc8ef93643c0752578b7cea8a986ab2b7eb0b7d5098dffb5cfc55e409",
+  "source_sha256": "715da34a55aff1bb94276cec44e82e115d179a4f38a8ff14766be5d644bae86f",
+  "version": 1
+}

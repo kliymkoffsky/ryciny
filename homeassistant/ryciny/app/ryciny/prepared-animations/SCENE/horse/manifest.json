@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "horse",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "90d2860993cae9e4b3a679df8bb7b2ebd77fc6906fb98b27c711e5e91bc9a870",
+  "source_sha256": "60dce04cfa8018f3f672fa85e1f7796538599472b81d22538e0707ab16282ae8",
+  "version": 1
+}

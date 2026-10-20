@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "siren",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "4752c8c315a30fdcaf2804272c8727ad6cfc677b690dccb50dc15079b9961a7e",
+  "source_sha256": "d9887981de4d20a79da729d49da30384fa435c17622ec1bde6e7dc58184dea3f",
+  "version": 1
+}
