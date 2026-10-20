@@ -18,7 +18,7 @@ import urllib.request
 
 from PIL import Image
 
-from . import stats
+from . import config, stats
 from .store import local, now_ms
 
 log = logging.getLogger(__name__)
@@ -29,7 +29,8 @@ KEEP_DAYS = 30
 CLIP_DAYS = 14
 
 
-def public_state(journal: dict, sounds: dict, sound_on) -> dict:
+def public_state(journal: dict, sounds: dict, sound_on, station_title: str = config.DEFAULT_STATION_TITLE) -> dict:
+    title = config._validated_station_title(station_title)
     since = now_ms() - KEEP_DAYS * 86_400_000
     birds = [{"name": b["name"], "sci": b["sci"], "conf": round(b["conf"], 2), "count": b["count"], "lastAt": b["lastAt"]}
              for b in journal["birds"] if b["lastAt"] >= since]
@@ -52,7 +53,7 @@ def public_state(journal: dict, sounds: dict, sound_on) -> dict:
                            "at": e["at"], "lastAt": e["lastAt"], "art": f"{e['key']}-{e['variant']}" if e["variant"] else e["key"]})
         if e.get("clip") and e.get("clipPublic") and e["lastAt"] >= clip_since:
             out_sounds[-1]["audio"] = e["clip"]
-    return {"updatedAt": now_ms(), "birds": birds, "planes": planes, "sounds": out_sounds}
+    return {"updatedAt": now_ms(), "title": title, "birds": birds, "planes": planes, "sounds": out_sounds}
 
 
 def plane_key(p: dict) -> str:
@@ -77,16 +78,22 @@ class Publisher:
             return r.read()
 
     def run(self) -> None:
-        version = -1
+        success_key: tuple[int, str] | None = None
         while True:
             time.sleep(EVERY_S)
-            if not self.cfg.public_url or not self.cfg.public_token or self.app.store.version == version:
+            if not self.cfg.public_url or not self.cfg.public_token:
                 continue
             try:
+                with config.SETTINGS_LOCK:
+                    # Capture before network work so a title changed mid-publish remains a pending key next round.
+                    title = config._validated_station_title(self.cfg.station_title)
+                    publication_key = (self.app.store.version, title)
+                if publication_key == success_key:
+                    continue
                 if self.sent is None:
                     self.sent = set(json.loads(self._put("/ingest/has", b"", "text/plain")))
                 journal = self.app.store.snapshot()
-                state = public_state(journal, self.app.sounds, self.app.sound_on)
+                state = public_state(journal, self.app.sounds, self.app.sound_on, title)
                 st = stats.compute(journal, self.app.store.history_snapshot(), self.app.sounds, self.app.sound_on, PRIVATE_SOUNDS,
                                    best=self.app.store.best_snapshot())
                 # Only best recordings without people or music go out; they stay (no 14-day expiry).
@@ -98,7 +105,7 @@ class Publisher:
                 self._animations(state)
                 state["artv"] = self.art_sent  # versions in the engravings' URLs: a replaced one is not served from cache
                 self._put("/ingest/state", json.dumps(state, ensure_ascii=False).encode(), "application/json")
-                version, self.error = self.app.store.version, None
+                success_key, self.error = publication_key, None
             except Exception as e:  # noqa: BLE001 - try again next round
                 self.error = f"strona publiczna: {e}"
                 log.warning("publish: %s", e)

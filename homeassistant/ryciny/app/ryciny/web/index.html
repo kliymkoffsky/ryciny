@@ -303,6 +303,16 @@ async function renderSettings() {
   if (!modelOptions.some(([value]) => value === currentModel)) modelOptions.push([currentModel, 'Niestandardowy (' + currentModel + ')']);
   $('#settings').innerHTML = `
     <p class="soft settings-status" id="settingsStatus" role="status" aria-live="polite"></p>
+    <h2>Tytuł publicznej strony</h2>
+    <form id="stationTitleForm">
+      <fieldset class="location-fields">
+        <label for="stationTitleInput">Nazwa nasłuchu</label>
+        <input id="stationTitleInput" name="station_title" type="text" required maxlength="120" autocomplete="off" aria-describedby="stationTitleHint stationTitleStatus">
+        <p id="stationTitleHint" class="soft">Ten tytuł pojawi się na publicznej stronie i w karcie przeglądarki. Jej adres pozostanie ten sam.</p>
+        <div class="location-actions"><button type="submit">Zapisz tytuł</button><button type="reset">Cofnij</button></div>
+      </fieldset>
+      <p id="stationTitleStatus" class="soft settings-status" role="status" aria-live="polite"></p>
+    </form>
     <h2>Lokalizacja nasłuchu</h2>
     <p class="soft">Miejsce mikrofonu używane do rozpoznawania ptaków, samolotów, pociągów i pogody. Zmiana dotyczy tego samego nasłuchu i jego publikacji. Dotychczasowy dziennik zostaje zachowany.</p>
     <form id="locationForm">
@@ -344,6 +354,7 @@ async function renderSettings() {
     <p class="soft">Dodatek ${esc(s.version)} · lokalizacja <span id="savedLocation">${s.lat.toFixed(3)}, ${s.lon.toFixed(3)}</span></p>`;
   syncSettingsControls(s);
   window.RycinyLocation.bind($('#locationForm'), s, save, window.isSecureContext ? navigator.geolocation : null);
+  window.RycinyLocation.bindTitle($('#stationTitleForm'), s, save);
 }
 
 function save(values) {

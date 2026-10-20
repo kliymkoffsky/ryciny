@@ -86,6 +86,59 @@
     });
   }
 
-  root.RycinyLocation = {parseCoordinates, bind};
+  function bindTitle(form, initial, save) {
+    /*
+     * Title edits have their own draft so changing another setting cannot
+     * discard typing or silently publish an unfinished title.
+     */
+
+    const input = form.querySelector('input');
+    const fields = form.querySelector('fieldset');
+    const status = form.querySelector('[role=status]');
+    let saved = initial.station_title;
+    input.value = input.defaultValue = saved;
+    const message = (text, error = false) => {
+      status.textContent = text;
+      status.classList.toggle('error', error);
+    };
+    input.addEventListener('input', () => {
+      input.setCustomValidity('');
+      message(input.value === saved ? '' : 'Tytuł nie jest jeszcze zapisany.');
+    });
+    form.addEventListener('reset', () => {
+      input.value = input.defaultValue = saved;
+      input.setCustomValidity('');
+      message('Przywrócono zapisany tytuł.');
+    });
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const title = input.value.trim();
+      if (!title || [...title].length > 120 || /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(title)) {
+        const error = 'Wpisz tytuł od 1 do 120 znaków, w jednym wierszu.';
+        input.setCustomValidity(error);
+        input.reportValidity();
+        message(error, true);
+        return;
+      }
+      fields.disabled = true;
+      message('Zapisywanie tytułu…');
+      try {
+        const result = await save({station_title: title});
+        if (!result) {
+          message('Nie udało się zapisać tytułu. Wpisany tekst pozostaje tutaj. Spróbuj ponownie.', true);
+          return;
+        }
+        saved = result.station_title;
+        input.value = input.defaultValue = saved;
+        message('Tytuł zapisany. Publiczna strona otrzyma go przy następnej publikacji, zwykle w ciągu 5 minut.');
+      } catch (_) {
+        message('Nie udało się zapisać tytułu. Spróbuj ponownie.', true);
+      } finally {
+        fields.disabled = false;
+      }
+    });
+  }
+
+  root.RycinyLocation = {parseCoordinates, bind, bindTitle};
   if (typeof module !== 'undefined') module.exports = root.RycinyLocation;
 })(typeof window === 'undefined' ? globalThis : window);

@@ -66,3 +66,44 @@ test('device GPS fills a draft without saving; denial preserves manual editing',
   assert.match(f.status.textContent, /ręcznie/);
   assert.equal(fixture(() => {}).device.disabled, true);
 });
+
+function titleFixture(save) {
+  const {bindTitle} = require('../app/ryciny/web/location.js');
+  const callbacks = {};
+  const input = {value: '', defaultValue: '', setCustomValidity(value) { this.error = value; }, reportValidity() {},
+    addEventListener(event, handler) { callbacks['input:' + event] = handler; }};
+  const status = {textContent: '', classList: {toggle() {}}};
+  const fields = {disabled: false};
+  const form = {querySelector(selector) { return {input, fieldset: fields, '[role=status]': status}[selector]; },
+    addEventListener(event, handler) { callbacks[event] = handler; }};
+  bindTitle(form, {station_title: 'Dźwięki Dolnego Migowa'}, save);
+  return {callbacks, input, status, fields, submit: () => callbacks.submit({preventDefault() {}})};
+}
+
+test('title saves independently from GPS, trims and restores the last saved title', async () => {
+  const requests = [];
+  const f = titleFixture(async values => { requests.push(values); return values; });
+  f.input.value = '  Ptaki nad Wisłą  ';
+  await f.submit();
+  assert.deepEqual(requests, [{station_title: 'Ptaki nad Wisłą'}]);
+  f.input.value = 'draft';
+  f.callbacks.reset();
+  assert.equal(f.input.value, 'Ptaki nad Wisłą');
+  assert.equal(f.fields.disabled, false);
+});
+
+test('title rejects blank or control input and keeps a failed-save draft', async () => {
+  let requests = 0;
+  const f = titleFixture(async () => { requests++; return null; });
+  for (const text of ['  ', 'a\nb', 'a\u2028b', 'x'.repeat(121)]) {
+    f.input.value = text;
+    await f.submit();
+  }
+  assert.equal(requests, 0);
+  f.input.value = 'Ptaki nad Wisłą';
+  await f.submit();
+  assert.equal(requests, 1);
+  assert.equal(f.input.value, 'Ptaki nad Wisłą');
+  assert.match(f.status.textContent, /Nie udało/);
+  assert.equal(f.fields.disabled, false);
+});

@@ -8,8 +8,11 @@ import os
 import tempfile
 import threading
 import time
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
+
+DEFAULT_STATION_TITLE = "Dźwięki Dolnego Migowa"
 
 
 @dataclass
@@ -20,6 +23,7 @@ class Config:
     lat: float = 54.352
     lon: float = 18.646
     location_changed_at: int = 0
+    station_title: str = DEFAULT_STATION_TITLE
     audio_command: str = "parec --format=float32le --rate=48000 --channels=1 --raw"
     image_provider: str = "openai"  # openai | gemini | openrouter | none
     openai_key: str = ""
@@ -88,6 +92,19 @@ def _validated_location_changed_at(value: object) -> int:
     return value
 
 
+def _validated_station_title(value: object) -> str:
+    """Validate and canonicalize the public listening-station title."""
+
+    if not isinstance(value, str):
+        raise ValueError("station_title must be a non-empty string of at most 120 characters without control characters")
+    if any(unicodedata.category(character) in ("Cc", "Zl", "Zp") for character in value):
+        raise ValueError("station_title must be a non-empty string of at most 120 characters without control characters")
+    title = value.strip()
+    if not title or len(title) > 120:
+        raise ValueError("station_title must be a non-empty string of at most 120 characters without control characters")
+    return title
+
+
 def location(cfg: Config) -> tuple[float, float]:
     """Return one lock-protected snapshot of the current GPS pair."""
 
@@ -126,6 +143,7 @@ def load() -> Config:
     apply_saved(cfg)
     cfg.lat, cfg.lon = _validated_location(cfg.lat, cfg.lon)
     cfg.location_changed_at = _validated_location_changed_at(cfg.location_changed_at)
+    cfg.station_title = _validated_station_title(cfg.station_title)
     for option in ("animation_playback", "animation_generate"):
         if type(getattr(cfg, option)) is not bool:
             raise ValueError(f"{option} must be a boolean")
@@ -147,7 +165,7 @@ RUNTIME = {
     "image_provider": str, "lookback_hours": int, "mic_gain_db": float,
     "frame_on": bool, "frame_host": str, "frame_every_min": int, "art_daily_limit": int, "prefer_bundled_art": bool,
     "animation_playback": bool, "animation_generate": bool, "animation_model": str,
-    "lat": float, "lon": float,
+    "lat": float, "lon": float, "station_title": str,
 }
 
 
@@ -205,6 +223,8 @@ def _validated_runtime(values: dict) -> dict:
             staged[key] = value
         elif key == "animation_model":
             staged[key] = _validated_animation_model(value)
+        elif key == "station_title":
+            staged[key] = _validated_station_title(value)
         elif kind is list:
             staged[key] = [str(item) for item in value]
         elif kind is str and key == "image_provider" and value not in ("openai", "gemini", "openrouter", "none"):

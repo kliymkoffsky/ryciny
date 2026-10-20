@@ -5,6 +5,8 @@ on:
   pull_request:
     paths:
       - "homeassistant/**"
+      - "public-site/worker.js"
+      - "public-site/title.test.mjs"
       - "shared/**"
       - "tools/generate_animation.py"
       - "docs/animation-atlases/**"
@@ -13,6 +15,8 @@ on:
     branches: [main]
     paths:
       - "homeassistant/**"
+      - "public-site/worker.js"
+      - "public-site/title.test.mjs"
       - "shared/**"
       - "tools/generate_animation.py"
       - "docs/animation-atlases/**"
@@ -31,6 +35,6 @@ jobs:
           node-version: "22"
       - run: pip install -r homeassistant/ryciny/app/requirements.txt pytest
       - run: python -m pytest -q homeassistant/ryciny/tests
-      - run: node --test homeassistant/ryciny/tests/animation.test.cjs
+      - run: node --test homeassistant/ryciny/tests/animation.test.cjs homeassistant/ryciny/tests/location.test.cjs public-site/title.test.mjs
       - name: Docker build (amd64)
         run: docker build --build-arg BUILD_FROM=ghcr.io/home-assistant/amd64-base-debian:bookworm -t ryciny-ha homeassistant/ryciny

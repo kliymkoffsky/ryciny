@@ -120,7 +120,7 @@ const PAGE = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dźwięki Dolnego Migowa</title>
-<meta name="description" content="Co ćwierka, przelatuje i słychać na Dolnym Migowie w Gdańsku: ptaki rozpoznane przez BirdNET, samoloty i dźwięki okolicy, na żywo, z rycinami.">
+<meta name="description" content="Co ćwierka, przelatuje i słychać w okolicy: ptaki rozpoznane przez BirdNET, samoloty i dźwięki okolicy, na żywo, z rycinami.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
@@ -130,7 +130,7 @@ const PAGE = `<!doctype html>
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font:18px/1.45 "EB Garamond",Georgia,serif}
 main{max-width:860px;margin:0 auto;padding:22px 16px 60px}
-h1{font-weight:400;text-align:center;font-size:34px;margin:6px 0 0}
+h1{overflow-wrap:anywhere;font-weight:400;text-align:center;font-size:34px;margin:6px 0 0}
 .sub{text-align:center;color:var(--soft);font-style:italic;margin:0 0 18px}
 h2{font-weight:400;font-size:24px;border-bottom:1px solid var(--rule);margin:34px 0 10px;padding-bottom:4px}
 .plate{background:var(--card);border:1px solid var(--rule);outline:1px solid var(--rule);outline-offset:-8px;padding:22px 18px;text-align:center}
@@ -182,8 +182,8 @@ a{color:var(--rubric)}
 </head>
 <body>
 <main>
-  <h1>Dźwięki Dolnego Migowa</h1>
-  <p class="sub">Gdańsk · mikrofon za oknem słucha ptaków, samolotów i okolicy · <span id="upd">…</span></p>
+  <h1 id="stationTitle">Dźwięki Dolnego Migowa</h1>
+  <p class="sub">Mikrofon za oknem słucha ptaków, samolotów i okolicy · <span id="upd">…</span></p>
   <nav class="filters top" id="filters"></nav>
   <p class="note" id="animNote" hidden>Niektóre ryciny są ruchome. Animacje są domyślnie zatrzymane; włączysz je przyciskiem <b>▶ włącz animacje</b> na górze.</p>
   <section class="plate" id="plate"><p class="soft">Wczytuję…</p></section>
@@ -287,6 +287,19 @@ let state = null, filter = fromHash(), page = 0;
 addEventListener('hashchange', () => { filter = fromHash(); page = 0; shown = null; render(); });
 const PAGE = 25;
 
+function renderStationTitle(value) {
+  /*
+   * Older publishers have no title field. Treat new titles as plain text so
+   * a configured name can never become markup in the public document.
+   */
+
+  const title = typeof value === 'string' ? value.trim() : '';
+  const valid = title && [...title].length <= 120 && !/[\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029]/.test(title);
+  const display = valid ? title : 'Dźwięki Dolnego Migowa';
+  $('#stationTitle').textContent = display;
+  document.title = display;
+}
+
 async function load() {
   try {
     const r = await fetch('api/state', {cache: 'no-cache'});
@@ -350,6 +363,7 @@ addEventListener('keydown', e => {
 });
 
 function render() {
+  renderStationTitle(state?.title);
   const s = state;
   if (!s || !s.birds) { $('#plate').innerHTML = '<p class="soft">Jeszcze nic tu nie ma.</p>'; return; }
   $('#upd').textContent = 'aktualizacja ' + day(s.updatedAt) + ' ' + hhmm(s.updatedAt);

@@ -28,6 +28,14 @@ Pasek na dole ryciny pokazuje, czy nasłuch trwa i co słychać.
   `http://<adres HA>:8099/api/plate.png?w=1600&h=900` (Still image URL) i kartę „Picture entity”.
   Dla ekranu e-ink: `&palette=spectra6` (6 kolorów panelu) albo `&palette=bw`.
 
+## Tytuł publicznej strony
+
+W panelu **Ustawienia → Tytuł publicznej strony** wpisz nazwę nasłuchu i naciśnij
+**Zapisz tytuł**. Tytuł może mieć od 1 do 120 znaków. Zapis pozostaje po restarcie.
+Nagłówek publicznej strony i nazwa jej karty w przeglądarce zmienią się przy następnej
+publikacji, zwykle w ciągu 5 minut, także gdy w dzienniku nie przybyło dźwięków.
+Adres strony, współrzędne i dotychczasowy dziennik pozostają bez zmian.
+
 ## Zmiana miejsca nasłuchu
 
 W panelu wybierz **Ustawienia → Lokalizacja nasłuchu**. Wpisz lub wklej parę
