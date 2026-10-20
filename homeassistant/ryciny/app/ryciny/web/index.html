@@ -13,6 +13,7 @@ input{accent-color:var(--rubric)}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:Garamond,Georgia,serif;font-size:18px}
 nav{display:flex;gap:4px;justify-content:center;background:var(--paper2);position:sticky;top:0;z-index:2}
 nav button{font:inherit;background:none;border:0;padding:12px 18px;color:var(--soft);cursor:pointer}
+@media(max-width:480px){nav{gap:0}nav button{padding:12px 10px}}
 nav button.on{color:var(--ink);border-bottom:2px solid var(--rubric)}
 main{max-width:1000px;margin:0 auto;padding:16px}
 .frame{border:1px solid rgba(43,33,24,.45);outline:1px solid rgba(43,33,24,.25);outline-offset:-6px;padding:18px;background:var(--paper)}
@@ -61,6 +62,13 @@ code{font-size:14px}
 .mic{text-align:center;margin:18px auto;max-width:520px}
 .meter{height:12px;border:1px solid var(--soft);margin:8px 0;background:#fff8}
 #meterBar{height:100%;width:0;background:var(--rubric);transition:width .4s}
+.location-fields{border:0;padding:0;margin:0;min-width:0}
+.location-fields label{display:block;margin:8px 0}
+.location-fields input{width:100%;max-width:460px;padding:9px;border:1px solid var(--soft);background:#fff6;color:var(--ink);border-radius:3px}
+.location-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.location-actions button{font:inherit;padding:8px 12px;border:1px solid var(--soft);background:var(--paper2);color:var(--ink);cursor:pointer;border-radius:3px}
+.location-actions button[type=submit]{background:var(--rubric);color:var(--paper);border-color:var(--rubric)}
+.location-actions button:disabled{opacity:.5;cursor:wait}
 .settings-status.error{color:var(--rubric);font-style:normal}
 </style>
 </head>
@@ -96,6 +104,7 @@ code{font-size:14px}
 <section id="settings" hidden></section>
 </main>
 <script src="animation.js"></script>
+<script src="location.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const api = (p, o) => fetch(p, o).then(r => r.ok ? r.json() : Promise.reject(r.status));
@@ -267,6 +276,10 @@ function syncSettingsControls(state) {
       ? Math.round(Number(value) * 100) + '%'
       : stringValue;
   });
+  const savedLocation = $('#savedLocation');
+  if (savedLocation && Number.isFinite(state.lat) && Number.isFinite(state.lon)) {
+    savedLocation.textContent = `${state.lat.toFixed(3)}, ${state.lon.toFixed(3)}`;
+  }
   const generationStatus = $('#animationGenerationStatus');
   if (generationStatus) generationStatus.textContent = animationGenerationMessage(state);
 }
@@ -290,6 +303,17 @@ async function renderSettings() {
   if (!modelOptions.some(([value]) => value === currentModel)) modelOptions.push([currentModel, 'Niestandardowy (' + currentModel + ')']);
   $('#settings').innerHTML = `
     <p class="soft settings-status" id="settingsStatus" role="status" aria-live="polite"></p>
+    <h2>Lokalizacja nasłuchu</h2>
+    <p class="soft">Miejsce mikrofonu używane do rozpoznawania ptaków, samolotów, pociągów i pogody. Zmiana dotyczy tego samego nasłuchu i jego publikacji. Dotychczasowy dziennik zostaje zachowany.</p>
+    <form id="locationForm">
+      <fieldset class="location-fields">
+        <label for="locationCoordinates">Współrzędne GPS: szerokość, długość</label>
+        <input id="locationCoordinates" name="coordinates" type="text" required spellcheck="false" autocomplete="off" aria-describedby="locationHint locationStatus" placeholder="54.352, 18.646">
+        <p id="locationHint" class="soft">Wpisz lub wklej parę z mapy, z kropką dziesiętną. Dokładne współrzędne nie są publikowane.</p>
+        <div class="location-actions"><button type="submit">Zapisz lokalizację</button><button type="button" data-location-device>Użyj lokalizacji tego urządzenia</button><button type="reset">Cofnij</button></div>
+      </fieldset>
+      <p id="locationStatus" class="soft settings-status" role="status" aria-live="polite"></p>
+    </form>
     <h2>Samsung The Frame</h2>${toggle('frame_on', 'Wysyłaj rycinę na telewizor')}
     <label class="set">Adres IP telewizora<input id="setting_frame_host" value="${esc(s.frame_host || '')}" placeholder="np. 192.168.1.14" onchange="save({frame_host: this.value.trim()})"></label>
     ${slider('frame_every_min', 'Nie częściej niż co (min)', 1, 60, 1)}
@@ -317,8 +341,9 @@ async function renderSettings() {
     ${list.map(x => `<label class="set">${esc(x.now)}<input type="checkbox" ${x.on ? 'checked' : ''} onchange="soundSwitch('${x.key}', this.checked)"></label>`).join('')}
     <h2>Na dashboardzie Home Assistant</h2>
     <p class="soft">Pełny, animowany widok Ryciny działa w tym panelu webowym i w bocznym menu dodatku. Na dashboardzie Home Assistant możesz osadzić adres webowy dodatku w karcie „Webpage”/iframe; wymaga to osiągalności adresu i odpowiedniej konfiguracji osadzania w HA. Opcjonalnie adres <code>http://&lt;adres HA&gt;:8099/api/plate.png?w=1600&h=900</code> służy jako statyczny obraz dla Generic Camera/Picture entity. Samsung Art Mode również pozostaje statyczny.</p>
-    <p class="soft">Dodatek ${esc(s.version)} · lokalizacja ${s.lat.toFixed(3)}, ${s.lon.toFixed(3)}</p>`;
+    <p class="soft">Dodatek ${esc(s.version)} · lokalizacja <span id="savedLocation">${s.lat.toFixed(3)}, ${s.lon.toFixed(3)}</span></p>`;
   syncSettingsControls(s);
+  window.RycinyLocation.bind($('#locationForm'), s, save, window.isSecureContext ? navigator.geolocation : null);
 }
 
 function save(values) {

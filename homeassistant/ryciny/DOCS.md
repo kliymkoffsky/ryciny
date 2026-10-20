@@ -28,6 +28,22 @@ Pasek na dole ryciny pokazuje, czy nasłuch trwa i co słychać.
   `http://<adres HA>:8099/api/plate.png?w=1600&h=900` (Still image URL) i kartę „Picture entity”.
   Dla ekranu e-ink: `&palette=spectra6` (6 kolorów panelu) albo `&palette=bw`.
 
+## Zmiana miejsca nasłuchu
+
+W panelu wybierz **Ustawienia → Lokalizacja nasłuchu**. Wpisz lub wklej parę
+`szerokość, długość`, np. `54.352, 18.646`, i naciśnij **Zapisz lokalizację**.
+Obie liczby zapisują się razem i pozostają po ponownym uruchomieniu dodatku.
+Zapisana lokalizacja ma pierwszeństwo przed lokalizacją Home Assistant i konfiguracją dodatku.
+
+Przycisk **Użyj lokalizacji tego urządzenia** wypełnia pole po zgodzie przeglądarki
+(wymaga HTTPS lub localhost). Sprawdź, czy urządzenie jest przy mikrofonie, i zapisz.
+Możesz też zawsze wpisać współrzędne ręcznie; **Cofnij** przywraca zapisaną parę.
+
+Ptaki i pogoda korzystają z nowego miejsca przy następnym rozpoznaniu. Samoloty
+oraz rozkład pociągów odświeżają się w tle; dane z poprzedniego miejsca są od razu
+pomijane. Dziennik i adres publikacji pozostają te same. Dokładne współrzędne
+nie trafiają do publicznej strony.
+
 ## Aplikacja na telefonie
 
 W aplikacji Ryciny: Ustawienia → „Źródło danych” → Home Assistant, adres `http://<adres HA>:8099`.

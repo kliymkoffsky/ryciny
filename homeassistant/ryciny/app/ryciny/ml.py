@@ -62,7 +62,8 @@ class BirdNet:
     def range_mask(self, lat: float, lon: float, date: dt.date | None = None) -> np.ndarray:
         date = date or dt.date.today()
         week = (date.month - 1) * 4 + min(4, (date.day - 1) // 7 + 1)
-        key = (round(lat, 1), round(lon, 1), week)
+        # Keep the full coordinate pair in the key: nearby locations can share a rounded cell.
+        key = (lat, lon, week)
         if key != self._mask_key:
             inp = self.meta.get_input_details()[0]
             self.meta.set_tensor(inp["index"], np.array([[lat, lon, week]], dtype=np.float32))

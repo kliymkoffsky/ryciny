@@ -5,9 +5,8 @@ from __future__ import annotations
 import logging
 import math
 import threading
-import time
 
-from . import net as http
+from . import config, net as http
 from .store import Store, now_ms
 
 log = logging.getLogger(__name__)
@@ -59,28 +58,63 @@ class Sky:
         self.error: str | None = None
         self._aircraft: dict[str, dict | None] = {}
         self._routes: dict[str, dict | None] = {}
+        self._origin: tuple[float, float] | None = None
+        self._error_origin: tuple[float, float] | None = None
+        self._attempt: tuple[tuple[float, float], int] | None = None
+        self._generation = 0
+        self._wake = threading.Event()
 
     def start(self) -> None:
         threading.Thread(target=self._loop, daemon=True, name="sky").start()
 
     def state(self) -> dict:
         """The app's SkyState as JSON."""
-        with self.lock:
-            return {"planes": self.planes, "overhead": self.overhead, "updatedAt": self.updated_at,
-                    "error": self.error, "heardAt": self.heard_at}
+        with config.SETTINGS_LOCK:
+            origin = config.location(self.cfg)
+            with self.lock:
+                if self._origin != origin:
+                    error = self.error if self._error_origin == origin else None
+                    return {"planes": [], "overhead": None, "updatedAt": 0, "error": error, "heardAt": 0}
+                return {"planes": self.planes, "overhead": self.overhead, "updatedAt": self.updated_at,
+                        "error": self.error, "heardAt": self.heard_at}
 
     def near(self, km: float, within_ms: int = 90_000) -> bool:
         """A low plane this close was overhead in the last [within_ms]: its rumble fakes thunder, ships and wind."""
-        with self.lock:
-            o, at = self.overhead, self.updated_at
-        return bool(o) and now_ms() - at < within_ms and o["distKm"] <= km and (o["altM"] or 0) <= self.cfg.overhead_max_alt_m
+        with config.SETTINGS_LOCK:
+            origin = config.location(self.cfg)
+            max_alt = self.cfg.overhead_max_alt_m
+            with self.lock:
+                if self._origin != origin:
+                    return False
+                o, at = self.overhead, self.updated_at
+        return bool(o) and now_ms() - at < within_ms and o["distKm"] <= km and (o["altM"] or 0) <= max_alt
 
     def heard(self, at: int) -> None:
-        with self.lock:
-            self.heard_at = at
-            overhead = self.overhead
+        with config.SETTINGS_LOCK:
+            origin = config.location(self.cfg)
+            with self.lock:
+                if self._origin != origin:
+                    return
+                generation = self._generation
+                self.heard_at = at
+                overhead = self.overhead
         if overhead:
-            self._record(overhead, at, heard=True)
+            self._record(overhead, at, heard=True, origin=origin, generation=generation)
+
+    def location_changed(self) -> None:
+        """Drop aircraft from the old station and wake the normal poll loop immediately."""
+        with config.SETTINGS_LOCK:
+            with self.lock:
+                self._generation += 1
+                self._origin = None
+                self.planes = []
+                self.overhead = None
+                self.updated_at = 0
+                self.heard_at = 0
+                self.error = None
+                self._error_origin = None
+                self._attempt = None
+        self._wake.set()
 
     def title(self, p: dict) -> str:
         return self.types.get(p["typeCode"].upper()) or p.get("model") or p["typeCode"] or "Statek powietrzny"
@@ -92,40 +126,78 @@ class Sky:
 
     def _loop(self) -> None:
         while True:
+            self._wake.clear()
             try:
                 self._poll()
             except Exception as e:  # noqa: BLE001 - keep polling whatever happens
                 log.warning("sky: %s", e)
-                with self.lock:
-                    self.error = str(e)
-            time.sleep(POLL_S)
+                self._mark_error(e)
+            self._wake.wait(POLL_S)
 
     def _poll(self) -> None:
-        lat, lon = self.cfg.lat, self.cfg.lon
-        nm = max(1, min(250, round(self.cfg.radius_km / 1.852)))
+        with config.SETTINGS_LOCK:
+            lat, lon = config.location(self.cfg)
+            nm = max(1, min(250, round(self.cfg.radius_km / 1.852)))
+            max_alt = self.cfg.overhead_max_alt_m
+            with self.lock:
+                generation = self._generation
+                self._attempt = ((lat, lon), generation)
         ac = http.get_json(f"https://api.adsb.lol/v2/point/{lat}/{lon}/{nm}").get("ac", [])
         planes = [p for p in (self._parse(a, lat, lon) for a in ac) if p and not p["onGround"]]
         planes.sort(key=lambda p: math.hypot(p["distKm"], (p["altM"] or 0) / 1000))
-        low = [p for p in planes if (p["altM"] if p["altM"] is not None else 10**9) <= self.cfg.overhead_max_alt_m]
+        low = [p for p in planes if (p["altM"] if p["altM"] is not None else 10**9) <= max_alt]
         overhead = (low or planes or [None])[0]
         if overhead:
             overhead = self._enrich(overhead)
         now = now_ms()
-        with self.lock:
-            self.planes = [overhead if overhead and p["hex"] == overhead["hex"] else p for p in planes]
-            self.overhead = overhead
-            self.updated_at = now
-            self.error = None
-            heard = now - self.heard_at < 20_000
+        with config.SETTINGS_LOCK:
+            current = config.location(self.cfg)
+            with self.lock:
+                if current != (lat, lon) or generation != self._generation:
+                    return
+                self._origin = (lat, lon)
+                self.planes = [overhead if overhead and p["hex"] == overhead["hex"] else p for p in planes]
+                self.overhead = overhead
+                self.updated_at = now
+                self.error = None
+                self._error_origin = None
+                heard = now - self.heard_at < 20_000
         if overhead:
-            self._record(overhead, now, heard)
+            self._record(overhead, now, heard, origin=(lat, lon), generation=generation)
+        with self.lock:
+            if self._attempt == ((lat, lon), generation):
+                self._attempt = None
 
-    def _record(self, p: dict, at: int, heard: bool) -> None:
-        self.store.add_plane({
-            "hex": p["hex"], "callsign": p["callsign"], "title": self.title(p), "airline": p.get("airline", ""),
-            "route": self.route(p), "at": at, "lastAt": at, "minDistKm": p["distKm"], "minAltM": p["altM"],
-            "heard": heard, "typeCode": p["typeCode"], "airlineIcao": p.get("airlineIcao", ""),
-        })
+    def _mark_error(self, error: Exception) -> None:
+        """Expose a failed request only when its captured origin is still current."""
+        with config.SETTINGS_LOCK:
+            current = config.location(self.cfg)
+            with self.lock:
+                attempt = self._attempt
+                if attempt is None or current != attempt[0] or self._generation != attempt[1]:
+                    return
+                self.error = str(error)
+                self._error_origin = attempt[0]
+
+    def _record(self, p: dict, at: int, heard: bool, origin: tuple[float, float] | None = None,
+                generation: int | None = None) -> bool:
+        if origin is None:
+            with config.SETTINGS_LOCK:
+                origin = config.location(self.cfg)
+                with self.lock:
+                    generation = self._generation
+        with config.SETTINGS_LOCK:
+            if config.location(self.cfg) != origin:
+                return False
+            with self.lock:
+                if generation != self._generation or self._origin != origin:
+                    return False
+                self.store.add_plane({
+                    "hex": p["hex"], "callsign": p["callsign"], "title": self.title(p), "airline": p.get("airline", ""),
+                    "route": self.route(p), "at": at, "lastAt": at, "minDistKm": p["distKm"], "minAltM": p["altM"],
+                    "heard": heard, "typeCode": p["typeCode"], "airlineIcao": p.get("airlineIcao", ""),
+                })
+        return True
 
     @staticmethod
     def _parse(o: dict, here_lat: float, here_lon: float) -> dict | None:

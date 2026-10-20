@@ -8,7 +8,7 @@ import uuid
 
 import numpy as np
 
-from . import dsp
+from . import config, dsp
 from .ml import BirdNet, Yamnet
 from .store import Store
 
@@ -139,7 +139,10 @@ class Analyzer:
             self._bark(audio16, frames, dog_scores, at)
 
     def _birds(self, conf: np.ndarray, at: int, public, clip) -> None:
-        mask = self.birdnet.range_mask(self.cfg.lat, self.cfg.lon) if self.cfg.range_filter else None
+        mask = None
+        if self.cfg.range_filter:
+            lat, lon = config.location(self.cfg)
+            mask = self.birdnet.range_mask(lat, lon)
         for i in np.nonzero(conf >= self.cfg.bird_threshold)[0]:
             label = self.birdnet.labels[i]
             if label.bird and (mask is None or mask[i]):

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import datetime as dt
+import hashlib
 import io
 import json
 import logging
@@ -14,7 +15,7 @@ import zipfile
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import net
+from . import config, net
 
 log = logging.getLogger(__name__)
 FEED_URL = "https://mkuran.pl/gtfs/polish_trains.zip"
@@ -86,6 +87,12 @@ def hhmm(sec: int) -> str:
     return f"{sec // 3600:02d}:{sec % 3600 // 60:02d}"
 
 
+def location_key(lat: float, lon: float) -> str:
+    """Stable cache identity for the exact floating-point coordinate pair."""
+    payload = f"{lat!r},{lon!r}".encode("ascii")
+    return hashlib.sha256(payload).hexdigest()
+
+
 class Rails:
     def __init__(self, cfg, store) -> None:
         self.cfg = cfg
@@ -97,19 +104,35 @@ class Rails:
         self.list: list[dict] = []
         self.error: str | None = None
         self.lock = threading.Lock()
+        self.origin: tuple[float, float] | None = None
+        self._error_origin: tuple[float, float] | None = None
+        self._attempt: tuple[tuple[float, float], int] | None = None
+        self._generation = 0
+        self._location_fence = cfg.location_changed_at
+        self._wake = threading.Event()
 
     def start(self) -> None:
         if self.cfg.trains:
             threading.Thread(target=self._loop, daemon=True, name="rails").start()
 
     def state(self) -> dict:
-        return {"date": self.date, "count": len(self.list), "error": self.error}
+        with config.SETTINGS_LOCK:
+            origin = config.location(self.cfg)
+            with self.lock:
+                if self.origin != origin:
+                    error = self.error if self._error_origin == origin else None
+                    return {"date": "", "count": 0, "error": error}
+                return {"date": self.date, "count": len(self.list), "error": self.error}
 
     def match(self, at_ms: int) -> dict | None:
         sec = dt.datetime.fromtimestamp(at_ms / 1000, ZONE).time()
         sec = sec.hour * 3600 + sec.minute * 60 + sec.second
-        with self.lock:
-            best = min(self.list, key=lambda p: abs(p["passSec"] - sec), default=None)
+        with config.SETTINGS_LOCK:
+            origin = config.location(self.cfg)
+            with self.lock:
+                if self.origin != origin or at_ms < self._location_fence:
+                    return None
+                best = min(self.list, key=lambda p: abs(p["passSec"] - sec), default=None)
         return best if best is not None and abs(best["passSec"] - sec) <= WINDOW_S else None
 
     def details(self, p: dict) -> tuple[str, str, str]:
@@ -117,18 +140,40 @@ class Rails:
 
     def _loop(self) -> None:
         while True:
+            self._wake.clear()
             try:
                 self._ensure_today()
             except Exception as e:  # noqa: BLE001
                 log.warning("rails: %s", e)
-                self.error = str(e)
-            time.sleep(30 * 60)
+                self._mark_error(e)
+            self._wake.wait(30 * 60)
+
+    def location_changed(self) -> None:
+        """Invalidate the timetable and wake the long interval poll after a station move."""
+        with config.SETTINGS_LOCK:
+            with self.lock:
+                self._generation += 1
+                self.origin = None
+                self.date = ""
+                self.list = []
+                self.error = None
+                self._error_origin = None
+                self._attempt = None
+                self._location_fence = self.cfg.location_changed_at
+        self._wake.set()
 
     def _ensure_today(self) -> None:
         today = dt.datetime.now(ZONE).strftime("%Y%m%d")
-        if today == self.date and self.list:
-            return
-        index = self.dir / f"passes-{today}-{round(self.cfg.lat * 100)}-{round(self.cfg.lon * 100)}.json"
+        with config.SETTINGS_LOCK:
+            origin = config.location(self.cfg)
+            with self.lock:
+                generation = self._generation
+                if today == self.date and self.origin == origin:
+                    return
+                fence = self._location_fence
+                self._attempt = (origin, generation)
+        lat, lon = origin
+        index = self.dir / f"passes-{today}-{location_key(lat, lon)}.json"
         if index.exists():
             found = json.loads(index.read_text())
         else:
@@ -138,14 +183,35 @@ class Rails:
                 tmp.write_bytes(net.get(FEED_URL, timeout=300))
                 tmp.replace(self.feed)
             started = time.time()
-            found = passes(self.feed, today, self.cfg.lat, self.cfg.lon)
+            found = passes(self.feed, today, lat, lon)
             log.info("rails: %d passes in %.1f s", len(found), time.time() - started)
             index.write_text(json.dumps(found, ensure_ascii=False))
             for old in self.dir.glob("passes-*.json"):
                 if old != index:
                     old.unlink(missing_ok=True)
+        with config.SETTINGS_LOCK:
+            if config.location(self.cfg) != origin:
+                return
+            with self.lock:
+                if generation != self._generation:
+                    return
+                self.date, self.list, self.error, self.origin = today, found, None, origin
+                self._error_origin = None
+                fence = self._location_fence
+            # Keep the global settings lock while backfilling so a station update cannot mix origins.
+            today_start = int(dt.datetime.now(ZONE).replace(hour=0, minute=0, second=0, microsecond=0).timestamp() * 1000)
+            self.store.fill_sounds("train", lambda e: self.details(m) if e["at"] >= today_start and e["at"] >= fence and (m := self.match(e["at"])) else None)
         with self.lock:
-            self.date, self.list, self.error = today, found, None
-        # Trains heard today before the timetable was ready get their route now.
-        today_start = int(dt.datetime.now(ZONE).replace(hour=0, minute=0, second=0, microsecond=0).timestamp() * 1000)
-        self.store.fill_sounds("train", lambda e: self.details(m) if e["at"] >= today_start and (m := self.match(e["at"])) else None)
+            if self._attempt == (origin, generation):
+                self._attempt = None
+
+    def _mark_error(self, error: Exception) -> None:
+        """Expose a failed request only when its captured origin is still current."""
+        with config.SETTINGS_LOCK:
+            current = config.location(self.cfg)
+            with self.lock:
+                attempt = self._attempt
+                if attempt is None or current != attempt[0] or self._generation != attempt[1]:
+                    return
+                self.error = str(error)
+                self._error_origin = attempt[0]

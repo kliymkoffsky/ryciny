@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import tempfile
 import threading
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -17,6 +19,7 @@ class Config:
     port: int = 8099
     lat: float = 54.352
     lon: float = 18.646
+    location_changed_at: int = 0
     audio_command: str = "parec --format=float32le --rate=48000 --channels=1 --raw"
     image_provider: str = "openai"  # openai | gemini | openrouter | none
     openai_key: str = ""
@@ -50,6 +53,47 @@ class Config:
 
 SETTINGS_LOCK = threading.RLock()
 
+_LOCATION_LIMITS = {
+    "lat": (-90.0, 90.0),
+    "lon": (-180.0, 180.0),
+}
+
+
+def _validated_coordinate(name: str, value: object) -> float:
+    """Validate one runtime GPS coordinate and return its normalized float value."""
+
+    limits = _LOCATION_LIMITS[name]
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{name} must be a finite number between {limits[0]:g} and {limits[1]:g}")
+    try:
+        coordinate = float(value)
+    except (OverflowError, TypeError, ValueError) as error:
+        raise ValueError(f"{name} must be a finite number between {limits[0]:g} and {limits[1]:g}") from error
+    if not math.isfinite(coordinate) or not limits[0] <= coordinate <= limits[1]:
+        raise ValueError(f"{name} must be a finite number between {limits[0]:g} and {limits[1]:g}")
+    return coordinate
+
+
+def _validated_location(lat: object, lon: object) -> tuple[float, float]:
+    """Validate and normalize a complete GPS pair."""
+
+    return _validated_coordinate("lat", lat), _validated_coordinate("lon", lon)
+
+
+def _validated_location_changed_at(value: object) -> int:
+    """Validate the persisted move fence without accepting client numeric coercions."""
+
+    if type(value) is not int or value < 0:
+        raise ValueError("location_changed_at must be a non-negative integer")
+    return value
+
+
+def location(cfg: Config) -> tuple[float, float]:
+    """Return one lock-protected snapshot of the current GPS pair."""
+
+    with SETTINGS_LOCK:
+        return cfg.lat, cfg.lon
+
 
 def load() -> Config:
     data = Path(os.environ.get("RYCINY_DATA", "/data"))
@@ -61,7 +105,7 @@ def load() -> Config:
     assets = os.environ.get("RYCINY_ASSETS")
     cfg = Config(data=data, assets=Path(assets) if assets else None)
     for key, value in options.items():
-        if hasattr(cfg, key) and value is not None and value != "":
+        if key != "location_changed_at" and hasattr(cfg, key) and value is not None and value != "":
             setattr(cfg, key, value)
     # In Home Assistant, the home location comes from HA itself unless the options set one.
     token = os.environ.get("SUPERVISOR_TOKEN")
@@ -80,6 +124,8 @@ def load() -> Config:
     if os.environ.get("RYCINY_AUDIO"):
         cfg.audio_command = os.environ["RYCINY_AUDIO"]
     apply_saved(cfg)
+    cfg.lat, cfg.lon = _validated_location(cfg.lat, cfg.lon)
+    cfg.location_changed_at = _validated_location_changed_at(cfg.location_changed_at)
     for option in ("animation_playback", "animation_generate"):
         if type(getattr(cfg, option)) is not bool:
             raise ValueError(f"{option} must be a boolean")
@@ -101,18 +147,29 @@ RUNTIME = {
     "image_provider": str, "lookback_hours": int, "mic_gain_db": float,
     "frame_on": bool, "frame_host": str, "frame_every_min": int, "art_daily_limit": int, "prefer_bundled_art": bool,
     "animation_playback": bool, "animation_generate": bool, "animation_model": str,
+    "lat": float, "lon": float,
 }
 
 
 def runtime(cfg: Config) -> dict:
     with SETTINGS_LOCK:
-        return {k: getattr(cfg, k) for k in RUNTIME if hasattr(cfg, k)}
+        values = {k: getattr(cfg, k) for k in RUNTIME if hasattr(cfg, k)}
+        values["location_changed_at"] = cfg.location_changed_at
+        return values
 
 
 def apply_saved(cfg: Config) -> None:
     f = cfg.data / "settings.json"
-    if f.exists():
-        update(cfg, json.loads(f.read_text()), save=False)
+    if not f.exists():
+        return
+    saved = json.loads(f.read_text())
+    if not isinstance(saved, dict):
+        raise ValueError("settings body must be an object")
+    saved_location_changed_at = _validated_location_changed_at(saved.get("location_changed_at", 0))
+    values = {key: value for key, value in saved.items() if key != "location_changed_at"}
+    with SETTINGS_LOCK:
+        update(cfg, values, save=False)
+        cfg.location_changed_at = saved_location_changed_at
 
 
 def _validated_animation_model(value: object) -> str:
@@ -128,16 +185,21 @@ def _validated_animation_model(value: object) -> str:
 
 
 def _validated_runtime(values: dict) -> dict:
-    """Stage runtime values before mutation so invalid animation requests remain all-or-nothing."""
+    """Stage runtime values before mutation so invalid settings requests remain all-or-nothing."""
 
     if not isinstance(values, dict):
         raise ValueError("settings body must be an object")
+    coordinates = {key for key in ("lat", "lon") if key in values}
+    if coordinates and coordinates != {"lat", "lon"}:
+        raise ValueError("lat and lon must be provided together")
     staged = {}
     for key, value in values.items():
         kind = RUNTIME.get(key)
         if kind is None:
             continue
-        if key in ("animation_playback", "animation_generate"):
+        if key in ("lat", "lon"):
+            staged[key] = _validated_coordinate(key, value)
+        elif key in ("animation_playback", "animation_generate"):
             if type(value) is not bool:
                 raise ValueError(f"{key} must be a boolean")
             staged[key] = value
@@ -176,6 +238,9 @@ def _save_runtime(path: Path, values: dict) -> None:
 def update(cfg: Config, values: dict, save: bool = True) -> dict:
     with SETTINGS_LOCK:
         staged = _validated_runtime(values)
+        before_location = location(cfg)
+        if save and "lat" in staged and "lon" in staged and (staged["lat"], staged["lon"]) != before_location:
+            staged["location_changed_at"] = int(time.time() * 1000)
         updated = runtime(cfg)
         updated.update(staged)
         if save:

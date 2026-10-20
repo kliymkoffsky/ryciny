@@ -69,7 +69,12 @@ class App:
                 continue
             self.art.bundled_originals[(kind, key)] = pack.original
 
-    _settings_changed = runtime_animation.settings_changed
+    def _settings_changed(self, before: dict, after: dict) -> None:
+        runtime_animation.settings_changed(self, before, after)
+        if (before["lat"], before["lon"]) != (after["lat"], after["lon"]):
+            self.sky.location_changed()
+            self.rails.location_changed()
+
     prefetch_once = runtime_animation.prefetch_once
     prefetch = runtime_animation.prefetch
 
@@ -273,8 +278,8 @@ class App:
                 try:
                     if path in ("/", "/plate"):
                         return self._send(200, (WEB / "index.html").read_bytes(), "text/html; charset=utf-8", {"Cache-Control": "no-cache"})
-                    if path == "/animation.js":
-                        return self._send(200, (WEB / "animation.js").read_bytes(), "application/javascript; charset=utf-8", {"Cache-Control": "no-cache"})
+                    if path in ("/animation.js", "/location.js"):
+                        return self._send(200, (WEB / path[1:]).read_bytes(), "application/javascript; charset=utf-8", {"Cache-Control": "no-cache"})
                     m = re.fullmatch(r"/fonts/(garamond|garamond_italic)\.ttf", path)
                     if m:
                         return self._send(200, app.assets.path(m[1] + ".ttf").read_bytes(), "font/ttf", {"Cache-Control": "max-age=86400"})
@@ -283,7 +288,7 @@ class App:
                     if path == "/api/breeds":
                         return self._json(json.loads(app.assets.text("dog_breeds.json")))
                     if path == "/api/settings":
-                        return self._json({**config.runtime(app.cfg), "lat": app.cfg.lat, "lon": app.cfg.lon,
+                        return self._json({**config.runtime(app.cfg),
                                            "providerReady": app.provider_ready(),
                                            "animationKeyReady": bool(app.cfg.openai_key.strip()),
                                            "version": __version__})
