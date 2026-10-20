@@ -11,3 +11,10 @@ cd app && RYCINY_DATA=/tmp/ryciny RYCINY_ASSETS=../../.. \
 # http://localhost:8099
 .venv/bin/python -m pytest tests
 ```
+
+Animation settings and the pack matrix are in [the animation preparation guide](../../docs/animation-preparation.md).
+In the add-on panel, `Ustawienia` saves runtime changes immediately in
+`/data/settings.json` and keeps them after restart. Saved settings override add-on
+options, and `RYCINY_ANIMATION_*` startup variables override saved values when the
+process loads. Cached playback needs no key. You can enable generation without a
+key, but the worker does no paid work until you set `Klucz OpenAI`.

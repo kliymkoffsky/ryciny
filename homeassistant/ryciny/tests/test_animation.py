@@ -133,6 +133,11 @@ def test_provider_error_and_real_checked_in_packs(tmp_path: Path, monkeypatch: p
         ("BIRD", "Columba palumbus"), ("BIRD", "Dendrocopos major"),
         ("BIRD", "Erithacus rubecula"), ("BIRD", "Hirundo rustica"),
         ("BIRD", "Pica pica"), ("BIRD", "Upupa epops"),
+        ("BIRD", "Alcedo atthis"), ("BIRD", "Ciconia ciconia"),
+        ("BIRD", "Strix aluco"), ("BIRD", "Parus major"),
+        ("BIRD", "Cyanistes caeruleus"), ("BIRD", "Passer domesticus"),
+        ("BIRD", "Fringilla coelebs"), ("BIRD", "Carduelis carduelis"),
+        ("BIRD", "Troglodytes troglodytes"), ("BIRD", "Sturnus vulgaris"),
     }
     found = set()
     for path in sorted(PACK_ROOT.glob("*/*")):

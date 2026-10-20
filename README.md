@@ -55,40 +55,60 @@ Same ryciny, tak jak zapisuje je aplikacja: wygenerowane raz, wycięte z tła i 
 | ![Gramofon](docs/ryciny/gramofon.png) | | |
 | Muzyka u sąsiadów | | |
 
-## Animowane interpretacje rycin (opcjonalne)
+## Prepared engraving animations
 
-Przeglądarka może odtwarzać przygotowane klatki w pętli, gdy rycina jest
-widoczna. Papier, podpisy i układ pozostają nieruchome, a wyłączenie animacji
-lub niezgodny pakiet zachowuje zwykłą rycinę. `animation_playback` i
-`animation_generate` są domyślnie wyłączone; `INCLUDE_ANIMATIONS=0` pomija
-przygotowane zasoby w obrazie Dockera.
+The add-on can play six cached frames over an existing engraving. Paper, captions,
+and layout stay fixed. Fresh installations start with playback and generation off.
+Existing saved choices stay in effect after an upgrade.
 
-W repozytorium jest siedem wcześniejszych atlasów z dokładnymi wiązaniami:
-`DOG/Kundel średni`, `BIRD/Turdus merula`, `SCENE/bells`, `SCENE/mower`,
-`PLANE/C208-plain`, `SCENE/music` i `PLANE/E75S-LOT`. Arkusze, prompty,
-hashe źródeł i proweniencja dostawcy są w
-[docs/animation-preparation.md](docs/animation-preparation.md) oraz
-[docs/animation-atlases/catalog.json](docs/animation-atlases/catalog.json).
-[Stary montaż siedmiu atlasów](docs/animation-atlases/moving-images.gif) zachowuje
-ten pierwszy pakiet.
+![Pack 4 review montage](docs/animation-atlases/pack-4/moving-images.gif)
 
-Pakiet trzeci dodaje dziesięć atlasów ptaków z dokładnymi kluczami BirdNET:
-`BIRD/Aegithalos caudatus`, `BIRD/Anas platyrhynchos`, `BIRD/Ardea cinerea`,
-`BIRD/Buteo buteo`, `BIRD/Columba palumbus`, `BIRD/Dendrocopos major`,
-`BIRD/Erithacus rubecula`, `BIRD/Hirundo rustica`, `BIRD/Pica pica` i
-`BIRD/Upupa epops`. [Montaż nowego pakietu](docs/animation-atlases/pack-3/moving-images.gif)
-pokazuje te dziesięć atlasów.
+Pack 4 adds ten BirdNET bundles and brings the repository to 27 prepared bundles.
+The montage shows the new atlases. Detailed bindings, source hashes, and
+provenance are in the [preparation guide](docs/animation-preparation.md) and
+[catalog](docs/animation-atlases/catalog.json).
 
-CLI planuje pracę lokalnie bez klucza i bez żądania sieciowego. `--generate`
-wykonuje jawne żądanie z kluczem, a `--sheet` importuje istniejący atlas.
-W trybie domyślnym `--output` nie jest potrzebne; jest wymagane z `--sheet` lub `--generate`.
+The feature builds on merged [PR #4](https://github.com/qunabu/ryciny/pull/4),
+[PR #3](https://github.com/qunabu/ryciny/pull/3), and
+[PR #5](https://github.com/qunabu/ryciny/pull/5).
 
-```bash
-python tools/generate_animation.py \
-  --source homeassistant/ryciny/app/ryciny/prepared-animations/DOG/kundel-sredni/original.png \
-  --kind DOG --key 'Kundel średni' \
-  --subject 'a medium-sized mixed-breed dog'
-```
+### Enable playback
+
+The Docker image includes prepared bundles by default. Runtime playback needs no
+API key and no rebuild.
+
+1. Open the add-on panel and select `Ustawienia`.
+2. Under `Animowana rycina`, turn on `Odtwarzaj animacje`.
+3. The setting saves immediately and persists across restarts.
+
+**Settings matrix**
+
+| Setting | Default | Control |
+| --- | --- | --- |
+| `animation_playback` | `false` | `Ustawienia` → `Odtwarzaj animacje` |
+| `animation_generate` | `false` | `Ustawienia` → `Generuj animacje dla istniejących i nowych rycin` |
+| `animation_model` | `gpt-image-2.5-sunburst` | `Ustawienia` → `Model generowania animacji` |
+| `INCLUDE_ANIMATIONS` | `1` | Docker build |
+
+Generation stays separate from playback. Set `Klucz OpenAI` in the Home Assistant
+add-on Configuration. Then enable
+`Generuj animacje dla istniejących i nowych rycin`, and choose
+`Model generowania animacji` to create missing bundles. Without a key, the
+worker does no paid work.
+
+`INCLUDE_ANIMATIONS=0` or `false` omits prepared assets from an advanced Docker
+build. It does not enable playback. Startup `RYCINY_ANIMATION_*` variables
+override saved animation settings when the process loads.
+
+The Home Assistant API exposes descriptors only when `animation_playback` is on.
+The Android client in Home Assistant mode follows this gate. Standalone Android,
+Generic Camera, Picture entity, and e-ink keep still output. Samsung The Frame
+uses its existing still Art Mode output.
+
+The public-site exporter publishes prepared descriptors independently. Its viewer
+starts paused and enables animation only after local browser opt-in. See the
+[full preparation guide](docs/animation-preparation.md) for runtime fallbacks,
+generation details, and platform boundaries.
 
 ## Sprzęt
 

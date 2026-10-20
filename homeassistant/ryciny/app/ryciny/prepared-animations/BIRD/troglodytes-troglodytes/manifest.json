@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Troglodytes troglodytes",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "9706ac64938aedc7929585bccddcac75b9a1e1757195a770493bb0716f744761",
+  "source_sha256": "fe296a4ed90d1c00afc511258e608e3e1cab5e8b56da70f8bc23dbe9bc0d0a0a",
+  "version": 1
+}
