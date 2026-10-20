@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "cat",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "4517366daaa983079fd8b8b95c7e2709e8e8bbd9588f09a0e7a5f3722284b2fb",
+  "source_sha256": "4eb6d71eb72d3686b59eafa28eac63676a85fb9b901690bd6dae111e40522c50",
+  "version": 1
+}

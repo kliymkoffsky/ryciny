@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "motorcycle",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "8a02b6d1f6f2b22ffc5312ff076311939965372bf885f6caf2b53b8600dca78c",
+  "source_sha256": "cd738737b99f2eee978d8dd59a607e8892fdee9ccbb19640168ba94e554787cb",
+  "version": 1
+}

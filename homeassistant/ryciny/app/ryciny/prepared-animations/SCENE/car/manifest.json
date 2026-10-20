@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "car",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "fa6ebd41257ac7ce666027c62baa4a9d189e191d44d266529117a1ddee022fda",
+  "source_sha256": "a9b94f28374625f6ca58a4b33369760820bd2908a823033406011d3477748b54",
+  "version": 1
+}

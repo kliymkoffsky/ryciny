@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "doorbell",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "8493cf202d7b94490ae67c40890bd164b3f641ee3efa5f0922979ba3c117dbaf",
+  "source_sha256": "b12c7d5c12468b6d7aae586d8740cff13895ac3b4671e4c1e23d8a1ea1bef3c8",
+  "version": 1
+}

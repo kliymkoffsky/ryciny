@@ -55,6 +55,17 @@ class App:
 
         fallback = Path(__file__).with_name("prepared-animations")
         self.animation_registry = runtime_animation.PackRegistry(self.cfg.data, fallback)
+        self.art.bundled_originals.clear()
+        bundled_root = fallback.resolve()
+        for key in self.sounds:
+            pack = self.animation_registry.get("SCENE", key)
+            if pack is None or pack.kind != "SCENE" or pack.key != key:
+                continue
+            try:
+                pack.path.relative_to(bundled_root)
+            except ValueError:
+                continue
+            self.art.bundled_originals[("SCENE", key)] = pack.original
 
     _settings_changed = runtime_animation.settings_changed
     prefetch_once = runtime_animation.prefetch_once
@@ -330,7 +341,11 @@ class App:
                         if pack is not None:
                             poster = runtime_animation.read_image(pack.frames[0], animation.MAX_FRAME_BYTES)
                             if poster is not None:
-                                return self._send(200, poster, "image/png", {"Cache-Control": "no-cache"})
+                                rel = app.art.candidates(kind, key)[-1].relative_to(app.art.root).as_posix()
+                                return self._send(200, poster, "image/png", {
+                                    "X-Ryciny-File": rel,
+                                    "Cache-Control": "no-cache",
+                                })
                         if q.get("cached") == "1" and kind != "BIRD":
                             # Thumbnails: only what is already drawn; a paid picture is never ordered by scrolling.
                             found = app.art.cached(kind, key)
@@ -340,7 +355,11 @@ class App:
                             found = app.art.load(kind, key, q.get("subject", key), q.get("airline", ""), q.get("prompt", ""), wait=False)
                         if found is None:
                             return self._json({"pending": True}, 202)
-                        rel = found.relative_to(app.art.root).as_posix()
+                        bundled = app.art.bundled_originals.get((kind, key))
+                        if bundled is not None and found == bundled:
+                            rel = app.art.candidates(kind, key)[-1].relative_to(app.art.root).as_posix()
+                        else:
+                            rel = found.relative_to(app.art.root).as_posix()
                         ctype = "image/webp" if found.suffix == ".webp" else "image/png"
                         return self._send(200, found.read_bytes(), ctype, {"X-Ryciny-File": rel, "Cache-Control": "max-age=31536000"})
                     m = re.fullmatch(r"/api/best/([0-9a-f]{8}\.(?:wav|mp3))", path)

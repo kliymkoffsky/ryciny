@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "wind",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "c84999b4a0d7058f1599cc6461bf6695472cad1de144c72292f9801928b8f266",
+  "source_sha256": "0bf5ca14e3d8cd46b1169685d560c60f69273ec1163a9b2d0a37aff22443d21a",
+  "version": 1
+}

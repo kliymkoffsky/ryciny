@@ -75,6 +75,7 @@ class Art:
         self.failed: dict[str, float] = {}
         self.no_plate: set[str] = set()
         self.error: str | None = None
+        self.bundled_originals: dict[tuple[str, str], Path] = {}
 
     def _spend(self) -> bool:
         """Counts one paid picture against art_daily_limit; False when today's are used up (the credits stay safe)."""
@@ -105,7 +106,11 @@ class Art:
         return [self.root / DIRS[kind] / f"{slug(key)}.png"]
 
     def cached(self, kind: str, key: str) -> Path | None:
-        return next((p for p in self.candidates(kind, key) if p.exists()), None)
+        found = next((p for p in self.candidates(kind, key) if p.exists()), None)
+        if found is not None:
+            return found
+        bundled = self.bundled_originals.get((kind, key))
+        return bundled if bundled is not None and bundled.exists() else None
 
     def load(self, kind: str, key: str, subject: str, airline: str = "", prompt: str = "", wait: bool = True) -> Path | None:
         """The engraving's file; fetches or generates it if missing (each one only ever once)."""

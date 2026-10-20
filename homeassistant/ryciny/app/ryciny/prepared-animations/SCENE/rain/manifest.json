@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "rain",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "36cda94eeb0554575c377845c0a363db95cd39d9ccb3524444bf77162ebf71a4",
+  "source_sha256": "8401ec62a6a197122c479b5a6668cdc0db9d92ec5835213d05598028c72611be",
+  "version": 1
+}

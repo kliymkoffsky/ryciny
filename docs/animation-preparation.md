@@ -85,6 +85,34 @@ Each pack keeps the exact `BIRD` key used by BirdNET. The browser and Home
 Assistant clients use the cached six-frame bundle when exact key and source
 validation pass. They keep the still image when no compatible bundle exists.
 
+## Pack 5: ten everyday scene atlases
+
+The fifth pack adds ten prepared bundles for exact sound keys from
+`shared/sounds.json`. The repository now contains 37 prepared bundles across
+the original pack and packs 3, 4, and 5.
+
+| atlas | exact binding |
+| --- | --- |
+| `pack-5/cat.png` | `SCENE / cat` |
+| `pack-5/car.png` | `SCENE / car` |
+| `pack-5/motorcycle.png` | `SCENE / motorcycle` |
+| `pack-5/train.png` | `SCENE / train` |
+| `pack-5/rain.png` | `SCENE / rain` |
+| `pack-5/wind.png` | `SCENE / wind` |
+| `pack-5/storm.png` | `SCENE / storm` |
+| `pack-5/doorbell.png` | `SCENE / doorbell` |
+| `pack-5/talking.png` | `SCENE / talking` |
+| `pack-5/children.png` | `SCENE / children` |
+
+[Review montage for pack 5](animation-atlases/pack-5/moving-images.gif) shows
+the ten new atlases. [Pack 5 attribution](animation-atlases/pack-5/ATTRIBUTION.md)
+records their generation provenance.
+
+For each new `SCENE`, the prepared bundle includes a canonical default still.
+The runtime uses that still only when no cached scene still exists. An existing
+cached custom still stays in use. The runtime serves animation frames only when
+the exact key and cached source match. It keeps the custom still when they do not.
+
 ## Prepare or generate
 
 The command-line tool plans work locally by default and makes no network request:
