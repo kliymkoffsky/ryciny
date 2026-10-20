@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "talking",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "5b0b64299fe4271d0ec7e6f253c7c2e7bd2f294f577a4f4979ee732e76d6362d",
+  "source_sha256": "156001570c555b9bb02b26e8fae6770fa8d8cde2fcd97de9e73289c3c8f8007a",
+  "version": 1
+}

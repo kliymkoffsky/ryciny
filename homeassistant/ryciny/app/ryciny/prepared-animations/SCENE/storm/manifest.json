@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "storm",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "c472c7178f0b4201e59eaf80cb7e11e6b1d3a5bfdcc1d38296125ae397231e35",
+  "source_sha256": "811522519a460af66329b33af4b5c4fcb022c752a326962da73b13d8cfced51c",
+  "version": 1
+}

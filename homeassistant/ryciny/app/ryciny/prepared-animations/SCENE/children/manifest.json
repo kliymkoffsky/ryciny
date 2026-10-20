@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "children",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "cd61e4e7dd13a2deff95453e1d5ac1a921420b996fe488422042d538a0f3f41e",
+  "source_sha256": "5063334f9be73f650a612e2b724bccea92a96b43bf5611215f73688df80ffeed",
+  "version": 1
+}

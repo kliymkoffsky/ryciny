@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "train",
+  "kind": "SCENE",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "5b0db7a0b136404b4467bd7c3910a5a38a75b6982dd9d06e131f1ea32e2b35ea",
+  "source_sha256": "b4ca6477a923c71db769aea4772c127bd7f2ad72af4b2593f376bf15fac7277e",
+  "version": 1
+}

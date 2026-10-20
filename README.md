@@ -61,12 +61,12 @@ The add-on can play six cached frames over an existing engraving. Paper, caption
 and layout stay fixed. Fresh installations start with playback and generation off.
 Existing saved choices stay in effect after an upgrade.
 
-![Pack 4 review montage](docs/animation-atlases/pack-4/moving-images.gif)
+![Pack 5 review montage](docs/animation-atlases/pack-5/moving-images.gif)
 
-Pack 4 adds ten BirdNET bundles and brings the repository to 27 prepared bundles.
-The montage shows the new atlases. Detailed bindings, source hashes, and
-provenance are in the [preparation guide](docs/animation-preparation.md) and
-[catalog](docs/animation-atlases/catalog.json).
+Pack 5 adds ten everyday sound-scene bundles and brings the repository to 37
+prepared bundles. The montage shows the new atlases. Detailed bindings, source
+hashes, and provenance are in the [preparation guide](docs/animation-preparation.md)
+and [catalog](docs/animation-atlases/catalog.json).
 
 The feature builds on merged [PR #4](https://github.com/qunabu/ryciny/pull/4),
 [PR #3](https://github.com/qunabu/ryciny/pull/3), and
