@@ -8,6 +8,7 @@ after CLIP_DAYS.
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import logging
@@ -62,6 +63,10 @@ class Publisher:
     def __init__(self, cfg, app) -> None:
         self.cfg, self.app = cfg, app
         self.sent: set[str] | None = None
+        try:  # which version of each engraving the page has (content hash), so a changed one goes up again
+            self.art_sent: dict[str, str] = json.loads((cfg.data / "published_art.json").read_text())
+        except (OSError, ValueError):
+            self.art_sent = {}
         self.error: str | None = None
 
     def _put(self, path: str, body: bytes, ctype: str) -> bytes:
@@ -91,6 +96,7 @@ class Publisher:
                 self._clips(state)
                 self._best(state)
                 self._animations(state)
+                state["artv"] = self.art_sent  # versions in the engravings' URLs: a replaced one is not served from cache
                 self._put("/ingest/state", json.dumps(state, ensure_ascii=False).encode(), "application/json")
                 version, self.error = self.app.store.version, None
             except Exception as e:  # noqa: BLE001 - try again next round
@@ -152,19 +158,26 @@ class Publisher:
             anims[f"{kind}:{key}"] = {"id": pack.id, "w": pack.width, "h": pack.height, "ms": pack.frame_ms}
         state["animations"] = anims
 
+    def _save_art_sent(self) -> None:
+        (self.cfg.data / "published_art.json").write_text(json.dumps(self.art_sent))
+
     def _art(self, state: dict) -> None:
         wanted = [("BIRD", b["sci"]) for b in state["birds"]] + [("PLANE", p["art"]) for p in state["planes"]] + \
                  [("SCENE", s["art"]) for s in state["sounds"]]
         for kind, key in dict.fromkeys(wanted):
-            if f"{kind}:{key}" in self.sent:
-                continue
             f = self.app.art.cached(kind, key)
-            if f is None and kind == "BIRD":
+            if f is None and kind == "BIRD" and f"{kind}:{key}" not in self.sent:
                 # Bird plates are fetched from fugleramme only when someone looks at them: fetch it for the page.
                 f = self.app.art.load(kind, key, key, wait=True)
             if f is None:
                 continue
+            # Sent once, and again when the engraving itself changes (e.g. a bundled one replaces the own one).
+            digest = hashlib.sha1(f.read_bytes()).hexdigest()[:12]
+            if f"{kind}:{key}" in self.sent and self.art_sent.get(f"{kind}:{key}") == digest:
+                continue
             ctype = "image/webp" if f.suffix == ".webp" else "image/png"
             self._put("/ingest/art?" + urllib.parse.urlencode({"kind": kind, "key": key}), f.read_bytes(), ctype)
             self.sent.add(f"{kind}:{key}")
+            self.art_sent[f"{kind}:{key}"] = digest
+            self._save_art_sent()
             log.info("publish: art %s %s", kind, key)

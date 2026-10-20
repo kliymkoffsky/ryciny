@@ -280,7 +280,7 @@ document.addEventListener('pointerout', e => {
   if (!row || (e.relatedTarget && row.contains(e.relatedTarget))) return;
   row.querySelectorAll('.anim.hover').forEach(div => { div.outerHTML = div.dataset.still; });
 });
-const stillArt = (kind, key, cls = 'thumb') => '<img class="' + cls + '" loading="lazy" alt="" src="art?kind=' + kind + '&key=' + encodeURIComponent(key) + '" onerror="this.outerHTML=\\'<div class=&quot;' + cls + ' empty&quot;></div>\\'">';
+const stillArt = (kind, key, cls = 'thumb') => '<img class="' + cls + '" loading="lazy" alt="" src="art?kind=' + kind + '&key=' + encodeURIComponent(key) + '&v=' + ((state && state.artv && state.artv[kind + ':' + key]) || '') + '" onerror="this.outerHTML=\\'<div class=&quot;' + cls + ' empty&quot;></div>\\'">';
 const FILTERS = [['all', 'wszystko', ''], ['birds', 'ptaki', 'ptaki'], ['planes', 'samoloty', 'samoloty'], ['sounds', 'dźwięki', 'dzwieki']];
 const fromHash = () => (FILTERS.find(f => f[2] && '#' + f[2] === location.hash) || FILTERS[0])[0];
 let state = null, filter = fromHash(), page = 0;

@@ -57,15 +57,17 @@ class App:
         self.animation_registry = runtime_animation.PackRegistry(self.cfg.data, fallback)
         self.art.bundled_originals.clear()
         bundled_root = fallback.resolve()
-        for key in self.sounds:
-            pack = self.animation_registry.get("SCENE", key)
-            if pack is None or pack.kind != "SCENE" or pack.key != key:
+        # Every bundled pack's original: used where no engraving exists yet, and instead of the add-on's own one when
+        # prefer_bundled_art is on (so the prepared animation matches it).
+        for kind, key in list(self.animation_registry.bindings):
+            pack = self.animation_registry.get(kind, key)
+            if pack is None or pack.kind != kind or pack.key != key:
                 continue
             try:
                 pack.path.relative_to(bundled_root)
             except ValueError:
                 continue
-            self.art.bundled_originals[("SCENE", key)] = pack.original
+            self.art.bundled_originals[(kind, key)] = pack.original
 
     _settings_changed = runtime_animation.settings_changed
     prefetch_once = runtime_animation.prefetch_once

@@ -106,10 +106,12 @@ class Art:
         return [self.root / DIRS[kind] / f"{slug(key)}.png"]
 
     def cached(self, kind: str, key: str) -> Path | None:
+        bundled = self.bundled_originals.get((kind, key))
+        if bundled is not None and getattr(self.cfg, "prefer_bundled_art", False) and bundled.exists():
+            return bundled  # the bundled engraving, so its prepared animation plays; the own one stays on disk
         found = next((p for p in self.candidates(kind, key) if p.exists()), None)
         if found is not None:
             return found
-        bundled = self.bundled_originals.get((kind, key))
         return bundled if bundled is not None and bundled.exists() else None
 
     def load(self, kind: str, key: str, subject: str, airline: str = "", prompt: str = "", wait: bool = True) -> Path | None:

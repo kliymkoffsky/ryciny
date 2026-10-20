@@ -1,3 +1,3 @@
 """Ryciny for Home Assistant: listens, recognises and keeps the journal the Android app shows."""
 
-__version__ = "0.26.0"
+__version__ = "0.27.0"

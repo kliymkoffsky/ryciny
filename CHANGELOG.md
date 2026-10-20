@@ -8,6 +8,15 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.27.0 - 2026-10-20
+
+- Dodatek: `prefer_bundled_art` (panel: Ustawienia → Animowana rycina → „Ryciny z gotowymi animacjami zamiast
+  własnych”). Tematy z gotowych paczek (kot, pszczoły, pociąg, koń, kogut…) dostają rycinę z paczki, więc ich
+  animacja pasuje i się rusza; własne ryciny zostają na dysku, wyłączenie je przywraca. Na telewizorze nic się nie
+  rusza (zawsze nieruchomy JPEG), zmienia się tylko wygląd tych rycin.
+- Strona publiczna: rycina wysyłana ponownie, gdy się zmieni (skrót treści), a jej adres ma wersję, żeby nowej nie
+  zasłaniała pamięć podręczna Cloudflare i przeglądarki.
+
 ## 0.26.0 - 2026-10-20
 
 - Animacje (PR #8, #9, Paweł Klimkowski): 57 paczek. Nowe dźwięki: narzędzia, piła łańcuchowa, helikopter, karetka,

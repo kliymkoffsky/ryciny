@@ -307,6 +307,8 @@ async function renderSettings() {
     <p class="soft">${s.providerReady ? 'Klucz dla wybranego dostawcy jest ustawiony.' : 'Brak klucza: wpisz go w konfiguracji dodatku (Ustawienia → Dodatki → Ryciny → Konfiguracja).'}</p>
     <h2>Animowana rycina</h2>
     ${toggle('animation_playback', 'Odtwarzaj animacje')}
+    ${toggle('prefer_bundled_art', 'Ryciny z gotowymi animacjami zamiast własnych')}
+    <p class="soft">Kot, pszczoły, pociąg i inne tematy z gotowych paczek dostaną ich rycinę, żeby animacja pasowała. Własne ryciny zostają na dysku; wyłączenie przywraca je.</p>
     ${toggle('animation_generate', 'Generuj animacje dla istniejących i nowych rycin')}
     <label class="set">Model generowania animacji<select id="setting_animation_model" onchange="save({animation_model: this.value})">${modelOptions.map(([value, label]) => `<option value="${esc(value)}" ${value === currentModel ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select></label>
     <p class="soft" id="animationGenerationStatus">${esc(animationGenerationMessage(s))}</p>

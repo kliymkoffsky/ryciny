@@ -165,3 +165,20 @@ def test_paid_engravings_stop_at_the_daily_limit(tmp_path):
     art = Art.__new__(Art)
     art.cfg = SimpleNamespace(data=tmp_path, art_daily_limit=2)
     assert [art._spend() for _ in range(3)] == [True, True, False]
+
+
+def test_bundled_engraving_wins_only_when_preferred(tmp_path):
+    from types import SimpleNamespace
+    from ryciny.art import Art
+    art = Art.__new__(Art)
+    art.root = tmp_path / "art"
+    own = art.root / "scenes" / "cat.png"
+    own.parent.mkdir(parents=True)
+    own.write_bytes(b"own")
+    bundled = tmp_path / "original.png"
+    bundled.write_bytes(b"bundled")
+    art.bundled_originals = {("SCENE", "cat"): bundled}
+    art.cfg = SimpleNamespace(prefer_bundled_art=False)
+    assert art.cached("SCENE", "cat") == own
+    art.cfg.prefer_bundled_art = True
+    assert art.cached("SCENE", "cat") == bundled and own.exists()
