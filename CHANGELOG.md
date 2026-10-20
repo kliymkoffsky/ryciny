@@ -8,6 +8,12 @@ tag w gicie to `vX.Y.Z`, a każdy tag ma release z plikiem APK.
 
 
 
+## 0.26.0 - 2026-10-20
+
+- Animacje (PR #8, #9, Paweł Klimkowski): 57 paczek. Nowe dźwięki: narzędzia, piła łańcuchowa, helikopter, karetka,
+  policja, straż, alarm samochodowy, kogut, żaby, pszczoły, statek, syrena, koń, krowa, owca, świnia, świerszcz,
+  komar, lodziarnia, koza. Dźwięk bez własnej ryciny bierze gotową z paczki (bez płatnego generowania).
+
 ## 0.25.0 - 2026-10-20
 
 - Animacje (PR #6, #7, Paweł Klimkowski): 37 paczek. Nowe ptaki: zimorodek, bocian, puszczyk, bogatka, modraszka,
