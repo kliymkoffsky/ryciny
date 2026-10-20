@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Tyto alba",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "6e1b0356a525c6462696205f663950a488b2f23b982a08553e772ca9cd62db40",
+  "source_sha256": "019e27e7644fd8d8018383fb10b36e5f3d884bec18f168f806e826174a7a650f",
+  "version": 1
+}

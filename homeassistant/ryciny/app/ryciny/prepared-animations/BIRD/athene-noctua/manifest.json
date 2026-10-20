@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Athene noctua",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "16dd85081b418a9826220694efae8bdd1eef64a2a23caebc6929269a34eb188b",
+  "source_sha256": "29e38f0303416281c4db7030493f2aabd73803d39978945b3335c86dd8875a63",
+  "version": 1
+}

@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Phasianus colchicus",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "7c78934c42d96f7dd1fe90310046be4f96af5661102bcddc442f4988c5851fcb",
+  "source_sha256": "11b6cad80d70df7417dc190feb78bf8dead4bf9b96d26f2f9dbb29c504887c54",
+  "version": 1
+}

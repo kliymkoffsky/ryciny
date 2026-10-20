@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Apus apus",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "e4e1119b03d55d0309c50a13aedaa138cebc3b622658427592ccd33859f00d59",
+  "source_sha256": "df6dc94354d34592ac6117104c12020b6ab1dd2e0e4ad81a3684757323950e2d",
+  "version": 1
+}

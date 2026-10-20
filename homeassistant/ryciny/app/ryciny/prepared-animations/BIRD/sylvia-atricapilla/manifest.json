@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Sylvia atricapilla",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "a84db93665730a08f99b741f698d12af0b7b4eedbcda4e21feb661ef08d70969",
+  "source_sha256": "840213ad61008f8a96bb218ac74a76f07dbbcb781a164045f7ef93235f1d7e4d",
+  "version": 1
+}

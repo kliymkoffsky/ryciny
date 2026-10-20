@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Anser anser",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "d4ab9d590bf77cdbf14410d39ddafa70cd2813b010416334f0efa4fe80c55c2c",
+  "source_sha256": "35299b30d9d7e8c0e95edb9f51946d6e5c313540b7e093b656e5fe084c447a06",
+  "version": 1
+}

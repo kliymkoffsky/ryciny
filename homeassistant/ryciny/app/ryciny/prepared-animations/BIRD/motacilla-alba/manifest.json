@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Motacilla alba",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "fb9275178799272a89cb2a98a298d11f5fd75cac548457f7a81399e8c8ee127d",
+  "source_sha256": "1cdfc619d3e3bb2e49562f1fc589d95b9a45eb288e7aa5abbdda2d7c5f9d5542",
+  "version": 1
+}

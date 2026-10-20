@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Alauda arvensis",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "806da5f699cc8633bdcd5ded851150daf45b7d6595899be15d35931f98456f61",
+  "source_sha256": "306826c46d0324545c0c48e38f3711616ee27a9a4f58909269fd78e3b2909ae2",
+  "version": 1
+}

@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Larus argentatus",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "ed32c68fcf39d9d359235223352cf9c5e6ad20896f8ef16e4cc455d2873f4c87",
+  "source_sha256": "c708f8ea0b316094b9f1065abdd9161a2563059c043fd068eda9c2fd18932ba3",
+  "version": 1
+}

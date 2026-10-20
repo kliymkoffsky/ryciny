@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Delichon urbicum",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "418c530a0a74943b2233a48835479a9b5d10d434219811da0057001b87cb7f40",
+  "source_sha256": "437eae13998c86a5e3291497bc9916a4ae5dea5033ccf4b60908d96e9a83c07b",
+  "version": 1
+}

@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Picus viridis",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "77b5c5c3e0d0b38f999ef81d55f2622d8bc645029eb3bd17d06c884c31057b39",
+  "source_sha256": "de6ca1f5b03129f8a2c44e8ddd92c8884a8f2a4f210646aec599f6de5f9cc1e1",
+  "version": 1
+}

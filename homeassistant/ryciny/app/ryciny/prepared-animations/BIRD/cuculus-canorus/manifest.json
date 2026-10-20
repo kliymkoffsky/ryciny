@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Cuculus canorus",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "4c3926dd64e2003d71e75875ae38e9b2b4e2ba9bf9e6b2fb1bf0789132babe47",
+  "source_sha256": "315157450458ade01ec2367de3a243705fed2de77166e96d68c0835b5bfa824b",
+  "version": 1
+}

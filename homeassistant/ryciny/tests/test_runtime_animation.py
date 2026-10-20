@@ -46,7 +46,7 @@ def test_catalog_subjects_through_runtime_and_immutable_atlas(tmp_path, monkeypa
     try:
         assert "javascript" in get("animation.js")[1]["Content-Type"]
         catalog = json.loads((REPO / "docs/animation-atlases/catalog.json").read_text())["examples"]
-        assert len(catalog) == len(app.animation_registry.bindings) == 57
+        assert len(catalog) == len(app.animation_registry.bindings) == 77
         app.cfg.sounds_on, app.cfg.sounds_off = list(app.sounds), []  # sheep and goat are off by default; check every subject
         for entry in catalog:
             kind, key, at = entry["kind"], entry["key"], now_ms()

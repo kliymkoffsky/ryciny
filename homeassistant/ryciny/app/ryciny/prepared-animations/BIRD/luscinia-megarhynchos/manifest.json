@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Luscinia megarhynchos",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "a002ead2277ab5f57f40ded60947e7feaa250d4c1f28438b92147456b68918ef",
+  "source_sha256": "34e70e3513f9efd1cfb5132e53f634140c361dfccee2a9c6ebb81aa593e5f4ea",
+  "version": 1
+}

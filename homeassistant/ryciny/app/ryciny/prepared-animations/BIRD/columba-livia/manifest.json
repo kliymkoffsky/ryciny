@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Columba livia",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "8fa272322958cd291b0da764536facfc2fb8acba00b602dafaeed198fddadbe4",
+  "source_sha256": "4eed4a25428341c19ecf30f2a7748790ff94d08de205917b0e3b13f3b2c587d7",
+  "version": 1
+}

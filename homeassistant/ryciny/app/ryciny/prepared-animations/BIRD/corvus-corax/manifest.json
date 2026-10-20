@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Corvus corax",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "1c9e3646fc2409c71a0f48d59982453501fca05b25243d3f480a8f9a91958e88",
+  "source_sha256": "9d9c054da0c20a0ead418ebf2348bf2402b24059ccbcbfb3b982c3d8984534eb",
+  "version": 1
+}

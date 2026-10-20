@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Streptopelia decaocto",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "c6dcecb98e338eb2873c292e3eeae4b0c6426b706e9211628f9c3b950368e0f9",
+  "source_sha256": "864a58f13839fd1e3ff361f18e7873cb95cb1f681e7e0a77f2e7cfb5796d5723",
+  "version": 1
+}

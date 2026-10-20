@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Gallinula chloropus",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "25079b901b94329ce3593c41114fc957610f648cd796d0da97ce612252947923",
+  "source_sha256": "cbdcbd6964833350b5a57905b4bb62d9dedebbcbac3ed18817dd69edc8404d30",
+  "version": 1
+}

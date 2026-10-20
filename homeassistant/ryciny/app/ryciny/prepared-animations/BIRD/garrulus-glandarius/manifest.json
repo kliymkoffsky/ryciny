@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Garrulus glandarius",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "57a3a633e2e130ddd5fa97ea0d9ba54f07aa2d22b16fbaa40a73028dec39408f",
+  "source_sha256": "6b484d7f04feba9e6995b58be4591ee631dea188f27b7102d7dd6d00121775e5",
+  "version": 1
+}

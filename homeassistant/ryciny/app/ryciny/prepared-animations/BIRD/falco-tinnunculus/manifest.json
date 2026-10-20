@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Falco tinnunculus",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "cb92f01cc5f678143387fe873e6c98449338c63b913e11001047ab016773d55f",
+  "source_sha256": "1d9c2c3705b3701567d9e54075486e5a3766c589e8190f5f49de6860c7e6bc3c",
+  "version": 1
+}

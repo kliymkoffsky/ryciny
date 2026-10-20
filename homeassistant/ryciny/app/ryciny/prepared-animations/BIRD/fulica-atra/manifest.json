@@ -1,0 +1,10 @@
+{
+  "frame_ms": 180,
+  "key": "Fulica atra",
+  "kind": "BIRD",
+  "model": null,
+  "provider": "openai-built-in-imagegen",
+  "sheet_sha256": "0ee58e6069c4ed2d2a6da09d19934ae08898c0e54e73437f04e91f4b018917a5",
+  "source_sha256": "40cee235718e80dae2d537a758204120b5f3af05daa10938f2f0e0105079a47b",
+  "version": 1
+}
